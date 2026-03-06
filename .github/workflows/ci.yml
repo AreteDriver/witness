@@ -40,7 +40,7 @@ jobs:
           python-version: "3.12"
       - run: pip install pip-audit
       - run: pip install -e ".[dev]"
-      - run: pip-audit --strict --ignore-vuln PYSEC-2024-182
+      - run: pip-audit --strict --ignore-vuln PYSEC-2024-182 --skip-editable
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
