@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+:root {
+  --eve-bg: #0a0a0f;
+  --eve-surface: #12121a;
+  --eve-border: #1e1e2e;
+  --eve-text: #c8c8d4;
+  --eve-dim: #6b6b7b;
+  --eve-green: #00ff88;
+  --eve-orange: #ff6600;
+  --eve-red: #ff3333;
+  --eve-yellow: #ffcc00;
+  --eve-blue: #3388ff;
+}
+
+body {
+  margin: 0;
+  background-color: var(--eve-bg);
+  color: var(--eve-text);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  min-height: 100vh;
+}
+
+a { color: var(--eve-green); text-decoration: none; }
+a:hover { text-decoration: underline; }
