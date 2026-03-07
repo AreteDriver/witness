@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { api, Fingerprint } from './api';
+import { api } from './api';
+import type { Fingerprint } from './api';
 import { SearchBar } from './components/SearchBar';
 import { FingerprintCard } from './components/FingerprintCard';
 import { ActivityHeatmap } from './components/ActivityHeatmap';

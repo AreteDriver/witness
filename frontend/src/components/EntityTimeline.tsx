@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, TimelineEvent } from '../api';
+import { api } from '../api';
+import type { TimelineEvent } from '../api';
 
 interface Props {
   entityId: string;

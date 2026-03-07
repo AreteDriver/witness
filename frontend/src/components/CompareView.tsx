@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { api, CompareResult } from '../api';
+import { api } from '../api';
+import type { CompareResult } from '../api';
 
 interface Props {
   initialEntity?: string;

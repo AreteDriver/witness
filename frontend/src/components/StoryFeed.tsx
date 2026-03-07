@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { api, FeedItem } from '../api';
+import { api } from '../api';
+import type { FeedItem } from '../api';
 
 function timeAgo(ts: number): string {
   const delta = Math.floor(Date.now() / 1000) - ts;

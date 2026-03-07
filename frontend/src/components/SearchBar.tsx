@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { api, SearchResult } from '../api';
+import { api } from '../api';
+import type { SearchResult } from '../api';
 
 interface Props {
   onSelect: (entityId: string) => void;

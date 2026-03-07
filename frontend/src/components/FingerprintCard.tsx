@@ -1,4 +1,4 @@
-import { Fingerprint } from '../api';
+import type { Fingerprint } from '../api';
 
 function ThreatBadge({ level }: { level: string }) {
   const colors: Record<string, string> = {
