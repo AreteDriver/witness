@@ -236,6 +236,29 @@ def _update_entities(db) -> None:
                 updated_at = unixepoch()
         """)
 
+        # Kill counts from attacker data (JSON arrays)
+        # Extract attacker addresses from killmails and count kills per attacker
+        rows = db.execute(
+            "SELECT attacker_character_ids FROM killmails WHERE attacker_character_ids != '[]'"
+        ).fetchall()
+        kill_counts: dict[str, int] = {}
+        for row in rows:
+            try:
+                attackers = json.loads(row["attacker_character_ids"])
+                for a in attackers:
+                    addr = a.get("address") or a.get("characterId") or a.get("id", "")
+                    if addr:
+                        addr = str(addr)
+                        kill_counts[addr] = kill_counts.get(addr, 0) + 1
+            except (json.JSONDecodeError, TypeError):
+                continue
+        for entity_id, kc in kill_counts.items():
+            db.execute(
+                """UPDATE entities SET kill_count = ?, updated_at = unixepoch()
+                   WHERE entity_id = ?""",
+                (kc, entity_id),
+            )
+
         # Characters from gate events
         db.execute("""
             INSERT INTO entities (entity_id, entity_type,

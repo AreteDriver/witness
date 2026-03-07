@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir .
 
 COPY backend/ backend/
 COPY scripts/ scripts/
+COPY frontend/dist/ frontend/dist/
 
 RUN mkdir -p data
 

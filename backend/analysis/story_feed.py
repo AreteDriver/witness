@@ -52,7 +52,8 @@ def detect_killmail_clusters(db, lookback_seconds: int = 3600) -> int:
            WHERE timestamp > ? AND solar_system_id != ''
            GROUP BY solar_system_id
            HAVING cnt >= 3
-           ORDER BY cnt DESC""",
+           ORDER BY cnt DESC
+           LIMIT 50""",
         (cutoff,),
     ).fetchall()
 
@@ -164,4 +165,74 @@ def generate_feed_items() -> int:
     if total > 0:
         db.commit()
         logger.info(f"Generated {total} new story feed items")
+    return total
+
+
+def generate_historical_feed() -> int:
+    """One-time: generate feed items from all historical data."""
+    db = get_db()
+    total = 0
+
+    # All-time killmail clusters (systems with 5+ kills)
+    clusters = db.execute(
+        """SELECT solar_system_id, COUNT(*) as cnt, MIN(timestamp) as first_ts,
+                  MAX(timestamp) as last_ts
+           FROM killmails WHERE solar_system_id != ''
+           GROUP BY solar_system_id
+           HAVING cnt >= 5
+           ORDER BY cnt DESC
+           LIMIT 30"""
+    ).fetchall()
+
+    for cluster in clusters:
+        duration_days = max(1, (cluster["last_ts"] - cluster["first_ts"]) // 86400)
+        severity = (
+            "critical" if cluster["cnt"] >= 50 else "warning" if cluster["cnt"] >= 20 else "info"
+        )
+        headline = (
+            f"ENGAGEMENT: {cluster['cnt']} killmails in system "
+            f"{cluster['solar_system_id']} over {duration_days} days"
+        )
+        body = f"{cluster['cnt']} ships destroyed over {duration_days} days."
+        _post_story(
+            db,
+            "engagement",
+            headline,
+            body,
+            [cluster["solar_system_id"]],
+            severity,
+            cluster["last_ts"],
+        )
+        total += 1
+
+    # Top killers
+    top_killers = db.execute(
+        """SELECT entity_id, display_name, kill_count
+           FROM entities WHERE kill_count >= 10
+           ORDER BY kill_count DESC LIMIT 10"""
+    ).fetchall()
+    for k in top_killers:
+        name = k["display_name"] or k["entity_id"][:16]
+        headline = f"HUNTER: {name} has {k['kill_count']} confirmed kills"
+        _post_story(db, "milestone", headline, "", [k["entity_id"]], "warning", int(time.time()))
+        total += 1
+
+    # Most died
+    top_deaths = db.execute(
+        """SELECT entity_id, display_name, death_count
+           FROM entities WHERE death_count >= 20
+           ORDER BY death_count DESC LIMIT 10"""
+    ).fetchall()
+    for d in top_deaths:
+        name = d["display_name"] or d["entity_id"][:16]
+        headline = f"THE MARKED: {name} has died {d['death_count']} times on-chain"
+        _post_story(db, "milestone", headline, "", [d["entity_id"]], "warning", int(time.time()))
+        total += 1
+
+    # Title stories
+    total += detect_title_changes(db)
+
+    if total > 0:
+        db.commit()
+        logger.info("Generated %d historical feed items", total)
     return total

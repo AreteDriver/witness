@@ -53,6 +53,7 @@ def client(test_db):
         patch("backend.api.routes.get_db", return_value=test_db),
         patch("backend.api.app.get_db", return_value=test_db),
         patch("backend.ingestion.poller.run_poller"),
+        patch("backend.bot.discord_bot.run_bot"),
     ):
         from backend.api.app import app
 

@@ -13,6 +13,7 @@ from backend.analysis.naming_engine import refresh_all_titles
 from backend.analysis.oracle import check_watches
 from backend.analysis.story_feed import generate_feed_items
 from backend.api.routes import router
+from backend.bot.discord_bot import run_bot  # noqa: E402
 from backend.core.config import settings
 from backend.core.logger import get_logger
 from backend.db.database import close_db, get_db
@@ -46,10 +47,11 @@ async def lifespan(app: FastAPI):
     # Start background tasks
     poller_task = asyncio.create_task(run_poller())
     intelligence_task = asyncio.create_task(_run_intelligence_loops())
+    bot_task = asyncio.create_task(run_bot())
 
     yield
 
-    for task in (poller_task, intelligence_task):
+    for task in (poller_task, intelligence_task, bot_task):
         task.cancel()
         try:
             await task
