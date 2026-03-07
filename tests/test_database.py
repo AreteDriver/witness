@@ -23,7 +23,7 @@ def test_schema_creates_all_tables():
     expected = {
         "killmails",
         "gate_events",
-        "storage_snapshots",
+        "smart_assemblies",
         "entities",
         "entity_titles",
         "watches",

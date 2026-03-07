@@ -80,8 +80,8 @@ pytest --cov=backend --cov-fail-under=80 tests/
 ## Critical Rules
 
 - POLLER MUST NEVER CRASH — all errors logged, never raised
-- Run scripts/explore_api.py BEFORE changing any schema
-- Schema field names are PLACEHOLDERS until confirmed against live API
+- Schema confirmed against blockchain-gateway-stillness.live.tech.evefrontier.com v2 API (2026-03-07)
+- API returns paginated results with {data: [], metadata: {total, limit, offset}}
 - Killmails are FIRST-CLASS data — only durable positional signal post-coordinate-privacy
 - Coordinates are hackathon-only — don't build core features on them
 - Cache AI narratives — same entity + same event hash = cached response

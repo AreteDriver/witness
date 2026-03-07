@@ -1,7 +1,7 @@
 """SQLite database with WAL mode and FTS5.
 
-Schema field names are PLACEHOLDERS — must be confirmed against real API
-response on March 11. Run scripts/explore_api.py first.
+Schema confirmed against blockchain-gateway-stillness.live.tech.evefrontier.com
+v2 API on 2026-03-07.
 """
 
 import sqlite3
@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS killmails (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     killmail_id TEXT UNIQUE NOT NULL,
     victim_character_id TEXT,
+    victim_name TEXT,
     victim_corp_id TEXT,
     attacker_character_ids TEXT,
     attacker_corp_ids TEXT,
@@ -45,16 +46,21 @@ CREATE TABLE IF NOT EXISTS gate_events (
     ingested_at INTEGER DEFAULT (unixepoch())
 );
 
-CREATE TABLE IF NOT EXISTS storage_snapshots (
+CREATE TABLE IF NOT EXISTS smart_assemblies (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    storage_id TEXT NOT NULL,
-    storage_name TEXT,
-    owner_id TEXT,
-    corp_id TEXT,
-    item_count INTEGER,
-    volume_used REAL,
-    timestamp INTEGER NOT NULL,
-    raw_json TEXT
+    assembly_id TEXT UNIQUE NOT NULL,
+    assembly_type TEXT,
+    name TEXT,
+    state TEXT,
+    solar_system_id TEXT,
+    solar_system_name TEXT,
+    owner_address TEXT,
+    owner_name TEXT,
+    x REAL,
+    y REAL,
+    z REAL,
+    raw_json TEXT,
+    ingested_at INTEGER DEFAULT (unixepoch())
 );
 
 CREATE TABLE IF NOT EXISTS entities (

@@ -4,9 +4,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # World API — will change on March 11 (Sui migration)
-    # Confirm actual base URL on hackathon server day 1
-    WORLD_API_BASE: str = "https://world-api.evefrontier.com"
+    # World API — confirmed live endpoint (blockchain gateway)
+    WORLD_API_BASE: str = "https://blockchain-gateway-stillness.live.tech.evefrontier.com"
 
     # Polling
     POLL_INTERVAL_SECONDS: int = 30
