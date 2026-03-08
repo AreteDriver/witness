@@ -1,10 +1,12 @@
 """FastAPI routes — entity dossiers, story feed, watches, health."""
 
 import json
+import re
 import time
+from urllib.parse import urlparse
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 
 from backend.analysis.assembly_tracker import get_assembly_stats, get_watcher_assemblies
 from backend.analysis.corp_intel import (
@@ -20,9 +22,35 @@ from backend.analysis.narrative import generate_battle_report, generate_dossier_
 from backend.analysis.reputation import compute_reputation
 from backend.analysis.streaks import compute_streaks, get_hot_streaks
 from backend.analysis.subscriptions import check_subscription, record_subscription
+from backend.api.rate_limit import limiter
+from backend.api.tier_gate import check_tier_access
+from backend.core.logger import get_logger
 from backend.db.database import get_db
 
+logger = get_logger("routes")
+
 router = APIRouter()
+
+# Private/reserved IP ranges for SSRF prevention
+_PRIVATE_IP_PATTERN = re.compile(
+    r"^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.0\.0\.0|169\.254\.|localhost)"
+)
+_ALLOWED_WEBHOOK_DOMAINS = {"discord.com", "discordapp.com"}
+
+
+def _validate_webhook_url(url: str) -> None:
+    """Validate webhook URL to prevent SSRF attacks."""
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise HTTPException(400, "Webhook URL must use HTTPS.")
+    hostname = parsed.hostname or ""
+    if _PRIVATE_IP_PATTERN.match(hostname):
+        raise HTTPException(400, "Webhook URL cannot point to private addresses.")
+    if not any(hostname.endswith(d) for d in _ALLOWED_WEBHOOK_DOMAINS):
+        raise HTTPException(
+            400,
+            f"Webhook domain not allowed. Allowed: {', '.join(_ALLOWED_WEBHOOK_DOMAINS)}",
+        )
 
 
 _HEALTH_TABLES = ("killmails", "gate_events", "entities", "story_feed", "watches")
@@ -238,19 +266,28 @@ async def search_entities(
 
 
 @router.get("/entity/{entity_id}/fingerprint")
-async def get_entity_fingerprint(entity_id: str):
+@limiter.limit("60/minute")
+async def get_entity_fingerprint(request: Request, entity_id: str):
+    check_tier_access(request, "get_entity_fingerprint")
     db = get_db()
-    fp = build_fingerprint(db, entity_id)
+    try:
+        fp = build_fingerprint(db, entity_id)
+    except Exception:
+        logger.exception("Error building fingerprint")
+        raise HTTPException(status_code=500, detail="Internal server error") from None
     if not fp:
         raise HTTPException(status_code=404, detail="Entity not found")
     return fp.to_dict()
 
 
 @router.get("/fingerprint/compare")
+@limiter.limit("30/minute")
 async def compare_entity_fingerprints(
+    request: Request,
     entity_1: str = Query(...),
     entity_2: str = Query(...),
 ):
+    check_tier_access(request, "compare_entity_fingerprints")
     db = get_db()
     fp1 = build_fingerprint(db, entity_1)
     fp2 = build_fingerprint(db, entity_2)
@@ -262,18 +299,23 @@ async def compare_entity_fingerprints(
 
 
 @router.get("/entity/{entity_id}/narrative")
-async def get_entity_narrative(entity_id: str):
+@limiter.limit("20/minute")
+async def get_entity_narrative(request: Request, entity_id: str):
+    check_tier_access(request, "get_entity_narrative")
     narrative = generate_dossier_narrative(entity_id)
     return {"entity_id": entity_id, "narrative": narrative}
 
 
 @router.get("/kill-graph")
+@limiter.limit("30/minute")
 async def get_kill_graph(
+    request: Request,
     entity_id: str | None = None,
     min_kills: int = Query(default=1, ge=1),
     limit: int = Query(default=50, le=200),
 ):
     """Kill graph: who kills whom, vendetta detection."""
+    check_tier_access(request, "get_kill_graph")
     db = get_db()
     return build_kill_graph(db, entity_id=entity_id, min_kills=min_kills, limit=limit)
 
@@ -335,8 +377,10 @@ async def get_corp(corp_id: str):
 
 
 @router.get("/entity/{entity_id}/reputation")
-async def get_entity_reputation(entity_id: str):
+@limiter.limit("60/minute")
+async def get_entity_reputation(request: Request, entity_id: str):
     """Trust/reputation score for an entity. Designed for Smart Assembly gating."""
+    check_tier_access(request, "get_entity_reputation")
     db = get_db()
     rep = compute_reputation(db, entity_id)
     return rep.to_dict()
@@ -364,13 +408,14 @@ async def get_subscription(wallet_address: str):
 
 
 class SubscribeRequest(BaseModel):
-    wallet_address: str
+    wallet_address: str = Field(pattern=r"^0x[a-fA-F0-9]{40}$")
     tier: int
     duration: int = 604800  # 7 days default
 
 
 @router.post("/subscribe")
-async def subscribe(req: SubscribeRequest):
+@limiter.limit("5/minute")
+async def subscribe(request: Request, req: SubscribeRequest):
     """Record a subscription (chain event handler / demo endpoint)."""
     db = get_db()
     if req.tier < 1 or req.tier > 3:
@@ -385,43 +430,51 @@ class BattleReportRequest(BaseModel):
 
 
 @router.post("/battle-report")
-async def create_battle_report(req: BattleReportRequest):
+@limiter.limit("10/minute")
+async def create_battle_report(request: Request, req: BattleReportRequest):
+    check_tier_access(request, "create_battle_report")
     db = get_db()
-    events = []
+    try:
+        events = []
 
-    for table, id_cols in [
-        ("gate_events", ["gate_id", "character_id", "corp_id"]),
-        ("killmails", ["victim_character_id", "victim_corp_id", "solar_system_id"]),
-    ]:
-        for col in id_cols:
-            rows = db.execute(
-                f"""SELECT * FROM {table}
-                    WHERE {col} = ? AND timestamp BETWEEN ? AND ?
-                    ORDER BY timestamp ASC""",
-                (req.entity_id, req.start, req.end),
-            ).fetchall()
-            events.extend([dict(r) for r in rows])
+        for table, id_cols in [
+            ("gate_events", ["gate_id", "character_id", "corp_id"]),
+            ("killmails", ["victim_character_id", "victim_corp_id", "solar_system_id"]),
+        ]:
+            for col in id_cols:
+                rows = db.execute(
+                    f"""SELECT * FROM {table}
+                        WHERE {col} = ? AND timestamp BETWEEN ? AND ?
+                        ORDER BY timestamp ASC""",
+                    (req.entity_id, req.start, req.end),
+                ).fetchall()
+                events.extend([dict(r) for r in rows])
 
-    # Deduplicate by (event_type implied by table, timestamp, entity)
-    seen = set()
-    unique_events = []
-    for e in events:
-        key = (e.get("killmail_id") or e.get("id"), e.get("timestamp"))
-        if key not in seen:
-            seen.add(key)
-            unique_events.append(e)
+        # Deduplicate by (event_type implied by table, timestamp, entity)
+        seen = set()
+        unique_events = []
+        for e in events:
+            key = (e.get("killmail_id") or e.get("id"), e.get("timestamp"))
+            if key not in seen:
+                seen.add(key)
+                unique_events.append(e)
 
-    unique_events.sort(key=lambda e: e.get("timestamp", 0))
+        unique_events.sort(key=lambda e: e.get("timestamp", 0))
 
-    if not unique_events:
-        return {"error": "No events found for this query"}
+        if not unique_events:
+            return {"error": "No events found for this query"}
 
-    if len(unique_events) > 500:
-        unique_events = unique_events[:500]
+        if len(unique_events) > 500:
+            unique_events = unique_events[:500]
 
-    report = generate_battle_report(unique_events)
-    report["event_count"] = len(unique_events)
-    return report
+        report = generate_battle_report(unique_events)
+        report["event_count"] = len(unique_events)
+        return report
+    except HTTPException:
+        raise
+    except Exception:
+        logger.exception("Error generating battle report")
+        raise HTTPException(status_code=500, detail="Internal server error") from None
 
 
 class WatchRequest(BaseModel):
@@ -433,7 +486,9 @@ class WatchRequest(BaseModel):
 
 
 @router.post("/watches")
-async def create_watch(req: WatchRequest):
+@limiter.limit("20/minute")
+async def create_watch(request: Request, req: WatchRequest):
+    check_tier_access(request, "create_watch")
     valid_types = {
         "entity_movement",
         "gate_traffic_spike",
@@ -442,6 +497,10 @@ async def create_watch(req: WatchRequest):
     }
     if req.watch_type not in valid_types:
         raise HTTPException(400, f"Invalid type. Choose: {', '.join(valid_types)}")
+
+    # SSRF prevention: validate webhook URL
+    if req.webhook_url:
+        _validate_webhook_url(req.webhook_url)
 
     db = get_db()
     db.execute(

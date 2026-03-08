@@ -4,14 +4,16 @@ import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
 
 from backend.analysis.naming_engine import refresh_all_titles
 from backend.analysis.oracle import check_watches
 from backend.analysis.story_feed import generate_feed_items
+from backend.api.rate_limit import limiter
 from backend.api.routes import router
 from backend.bot.discord_bot import run_bot  # noqa: E402
 from backend.core.config import settings
@@ -70,11 +72,36 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://witness-evefrontier.fly.dev",
+    ],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "DELETE"],
     allow_headers=["*"],
 )
+
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded. Try again later."},
+    )
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 
 app.include_router(router, prefix="/api")
 
@@ -86,7 +113,11 @@ if FRONTEND_DIR.exists():
     @app.get("/{path:path}")
     async def serve_frontend(path: str):
         """Serve React SPA — all non-API routes fall through to index.html."""
-        file = (FRONTEND_DIR / path).resolve()
-        if file.is_relative_to(FRONTEND_DIR) and file.exists() and file.is_file():
-            return FileResponse(str(file))
-        return FileResponse(str(FRONTEND_DIR / "index.html"))
+        index = str(FRONTEND_DIR / "index.html")
+        # Sanitize: resolve then enforce boundary
+        safe_path = (FRONTEND_DIR / path).resolve()
+        if not str(safe_path).startswith(str(FRONTEND_DIR)):
+            return FileResponse(index)
+        if safe_path.exists() and safe_path.is_file():
+            return FileResponse(str(safe_path))
+        return FileResponse(index)
