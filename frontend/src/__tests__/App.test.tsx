@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../App";
+import { AuthProvider } from "../contexts/AuthContext";
 
 // Mock all child components that make API calls
 vi.mock("../components/HealthBanner", () => ({
@@ -60,6 +61,20 @@ vi.mock("../components/ReputationBadge", () => ({
 vi.mock("../components/AssemblyMap", () => ({
   AssemblyMap: () => <div>AssemblyMap</div>,
 }));
+vi.mock("../components/AccountPage", () => ({
+  AccountPage: () => <div data-testid="account-page">AccountPage</div>,
+}));
+vi.mock("../components/TierGate", () => ({
+  TierGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+function renderApp() {
+  return render(
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+}
 
 beforeEach(() => {
   vi.restoreAllMocks();
@@ -67,43 +82,44 @@ beforeEach(() => {
 
 describe("App", () => {
   it("renders WITNESS header", () => {
-    render(<App />);
+    renderApp();
     expect(screen.getByText("WITNESS")).toBeInTheDocument();
   });
 
   it("renders The Living Memory subtitle", () => {
-    render(<App />);
+    renderApp();
     expect(screen.getByText("The Living Memory")).toBeInTheDocument();
   });
 
-  it("renders all four tab buttons", () => {
-    render(<App />);
+  it("renders all five tab buttons", () => {
+    renderApp();
     expect(screen.getByText("Intelligence")).toBeInTheDocument();
     expect(screen.getByText("Tactical")).toBeInTheDocument();
     expect(screen.getByText("Compare")).toBeInTheDocument();
     expect(screen.getByText("Feed & Rankings")).toBeInTheDocument();
+    expect(screen.getByText("Connect")).toBeInTheDocument();
   });
 
   it("renders the search bar", () => {
-    render(<App />);
+    renderApp();
     expect(screen.getByTestId("search-bar")).toBeInTheDocument();
   });
 
   it("renders the footer", () => {
-    render(<App />);
+    renderApp();
     expect(
       screen.getByText(/Chain Archaeology.*Oracle Intelligence/)
     ).toBeInTheDocument();
   });
 
   it("renders health banner and wallet connect", () => {
-    render(<App />);
+    renderApp();
     expect(screen.getByTestId("health-banner")).toBeInTheDocument();
     expect(screen.getByTestId("wallet-connect")).toBeInTheDocument();
   });
 
   it("shows empty state message when no entity selected", () => {
-    render(<App />);
+    renderApp();
     expect(
       screen.getByText(/Search for an entity to view their behavioral fingerprint/)
     ).toBeInTheDocument();
@@ -111,8 +127,15 @@ describe("App", () => {
 
   it("switches to Compare tab on click", async () => {
     const user = userEvent.setup();
-    render(<App />);
+    renderApp();
     await user.click(screen.getByText("Compare"));
     expect(screen.getByTestId("compare-view")).toBeInTheDocument();
+  });
+
+  it("switches to Account tab on click", async () => {
+    const user = userEvent.setup();
+    renderApp();
+    await user.click(screen.getByText("Connect"));
+    expect(screen.getByTestId("account-page")).toBeInTheDocument();
   });
 });

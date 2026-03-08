@@ -485,6 +485,19 @@ class WatchRequest(BaseModel):
     conditions: dict = {}
 
 
+@router.get("/watches")
+async def list_watches(user_id: str = Query(..., min_length=1)):
+    """List active watches for a user/wallet."""
+    db = get_db()
+    rows = db.execute(
+        "SELECT id, user_id, watch_type, target_id, active, webhook_url, "
+        "CAST(strftime('%s', created_at) AS INTEGER) as created_at "
+        "FROM watches WHERE user_id = ? AND active = 1 ORDER BY id DESC",
+        (user_id,),
+    ).fetchall()
+    return {"watches": [dict(r) for r in rows]}
+
+
 @router.post("/watches")
 @limiter.limit("20/minute")
 async def create_watch(request: Request, req: WatchRequest):

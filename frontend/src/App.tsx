@@ -17,15 +17,19 @@ import { CorpIntel } from './components/CorpIntel';
 import { ReputationBadge } from './components/ReputationBadge';
 import { AssemblyMap } from './components/AssemblyMap';
 import { WalletConnect } from './components/WalletConnect';
+import { AccountPage } from './components/AccountPage';
+import { TierGate } from './components/TierGate';
+import { useAuth } from './contexts/AuthContext';
 
-type Tab = 'intel' | 'tactical' | 'compare' | 'feed';
+type Tab = 'intel' | 'tactical' | 'compare' | 'feed' | 'account';
 
-function App() {
+function AppContent() {
   const [fingerprint, setFingerprint] = useState<Fingerprint | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('intel');
   const [selectedEntity, setSelectedEntity] = useState('');
+  const { wallet } = useAuth();
 
   const loadEntity = async (entityId: string) => {
     setLoading(true);
@@ -47,6 +51,7 @@ function App() {
     { key: 'tactical', label: 'Tactical' },
     { key: 'compare', label: 'Compare' },
     { key: 'feed', label: 'Feed & Rankings' },
+    { key: 'account', label: wallet ? 'Account' : 'Connect' },
   ];
 
   return (
@@ -69,10 +74,12 @@ function App() {
 
       {/* Main */}
       <main className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-        {/* Search */}
-        <div className="max-w-xl">
-          <SearchBar onSelect={loadEntity} />
-        </div>
+        {/* Search (hidden on account tab) */}
+        {activeTab !== 'account' && (
+          <div className="max-w-xl">
+            <SearchBar onSelect={loadEntity} />
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-[var(--eve-border)]">
@@ -113,16 +120,22 @@ function App() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="md:col-span-2">
-                    <FingerprintCard fp={fingerprint} />
+                    <TierGate requiredTier={1} featureName="Behavioral Fingerprints">
+                      <FingerprintCard fp={fingerprint} />
+                    </TierGate>
                   </div>
-                  <ReputationBadge entityId={selectedEntity} />
+                  <TierGate requiredTier={1} featureName="Reputation Score">
+                    <ReputationBadge entityId={selectedEntity} />
+                  </TierGate>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-4 space-y-4">
                     <ActivityHeatmap entityId={selectedEntity} />
                     <EntityTimeline entityId={selectedEntity} />
                   </div>
-                  <NarrativePanel entityId={selectedEntity} />
+                  <TierGate requiredTier={2} featureName="AI Narrative">
+                    <NarrativePanel entityId={selectedEntity} />
+                  </TierGate>
                 </div>
               </>
             )}
@@ -143,11 +156,15 @@ function App() {
         {activeTab === 'tactical' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
-              <KillGraph entityId={selectedEntity || undefined} onSelect={loadEntity} />
+              <TierGate requiredTier={3} featureName="Kill Graph">
+                <KillGraph entityId={selectedEntity || undefined} onSelect={loadEntity} />
+              </TierGate>
               <CorpIntel />
             </div>
             <div className="space-y-6">
-              <HotzoneMap />
+              <TierGate requiredTier={1} featureName="Hotzones">
+                <HotzoneMap />
+              </TierGate>
               <StreakTracker entityId={selectedEntity || undefined} onSelect={loadEntity} />
               <AssemblyMap />
             </div>
@@ -155,7 +172,9 @@ function App() {
         )}
 
         {activeTab === 'compare' && (
-          <CompareView initialEntity={selectedEntity} onSelect={loadEntity} />
+          <TierGate requiredTier={1} featureName="Fingerprint Compare">
+            <CompareView initialEntity={selectedEntity} onSelect={loadEntity} />
+          </TierGate>
         )}
 
         {activeTab === 'feed' && (
@@ -164,6 +183,8 @@ function App() {
             <Leaderboard onSelect={loadEntity} />
           </div>
         )}
+
+        {activeTab === 'account' && <AccountPage />}
       </main>
 
       {/* Footer */}
@@ -176,4 +197,6 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return <AppContent />;
+}

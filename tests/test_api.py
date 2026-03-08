@@ -500,3 +500,33 @@ def test_battle_report_no_events(client):
     )
     assert r.status_code == 200
     assert "error" in r.json()
+
+
+def test_list_watches_empty(client):
+    r = client.get("/api/watches?user_id=nobody")
+    assert r.status_code == 200
+    assert r.json()["watches"] == []
+
+
+def test_list_watches_after_create(client):
+    client.post(
+        "/api/watches",
+        json={
+            "user_id": "0x1234567890abcdef1234567890abcdef12345678",
+            "watch_type": "entity_movement",
+            "target_id": "char-001",
+        },
+    )
+    r = client.get(
+        "/api/watches?user_id=0x1234567890abcdef1234567890abcdef12345678"
+    )
+    assert r.status_code == 200
+    watches = r.json()["watches"]
+    assert len(watches) == 1
+    assert watches[0]["target_id"] == "char-001"
+    assert watches[0]["watch_type"] == "entity_movement"
+
+
+def test_list_watches_missing_user_id(client):
+    r = client.get("/api/watches")
+    assert r.status_code == 422

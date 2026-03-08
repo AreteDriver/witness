@@ -1,9 +1,31 @@
 const BASE = '/api';
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const r = await fetch(`${BASE}${url}`);
+const STORAGE_KEY = 'witness_wallet';
+
+function getAuthHeaders(): Record<string, string> {
+  const wallet = localStorage.getItem(STORAGE_KEY);
+  return wallet ? { 'X-Wallet-Address': wallet } : {};
+}
+
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const r = await fetch(`${BASE}${url}`, {
+    ...init,
+    headers: { ...getAuthHeaders(), ...init?.headers },
+  });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
+}
+
+async function postJson<T>(url: string, body: unknown): Promise<T> {
+  return fetchJson<T>(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+async function deleteJson<T>(url: string): Promise<T> {
+  return fetchJson<T>(url, { method: 'DELETE' });
 }
 
 export interface Entity {
@@ -192,6 +214,16 @@ export interface SubscriptionData {
   active: boolean;
 }
 
+export interface WatchData {
+  id: number;
+  user_id: string;
+  watch_type: string;
+  target_id: string;
+  active: boolean;
+  webhook_url: string;
+  created_at: number;
+}
+
 export const api = {
   health: () => fetchJson<{ status: string; tables: Record<string, number> }>('/health'),
   search: (q: string) => fetchJson<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`),
@@ -224,4 +256,14 @@ export const api = {
   reputation: (id: string) => fetchJson<ReputationData>(`/entity/${id}/reputation`),
   assemblies: () => fetchJson<AssemblyStats>('/assemblies'),
   subscription: (wallet: string) => fetchJson<SubscriptionData>(`/subscription/${wallet}`),
+  subscribe: (wallet: string, tier: number) =>
+    postJson<SubscriptionData>('/subscribe', { wallet_address: wallet, tier }),
+  watches: (userId: string) =>
+    fetchJson<{ watches: WatchData[] }>(`/watches?user_id=${encodeURIComponent(userId)}`),
+  createWatch: (userId: string, watchType: string, targetId: string, webhookUrl = '') =>
+    postJson<{ status: string }>('/watches', {
+      user_id: userId, watch_type: watchType, target_id: targetId, webhook_url: webhookUrl,
+    }),
+  deleteWatch: (targetId: string, userId: string) =>
+    deleteJson<{ status: string }>(`/watches/${targetId}?user_id=${encodeURIComponent(userId)}`),
 };
