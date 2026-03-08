@@ -34,9 +34,7 @@ async def _fetch_all(client: httpx.AsyncClient, endpoint: str) -> list[dict]:
         items = data.get("data", [])
         all_items.extend(items)
         total = data.get("metadata", {}).get("total", 0)
-        logger.info(
-            "%s: %d/%d fetched", endpoint, len(all_items), total
-        )
+        logger.info("%s: %d/%d fetched", endpoint, len(all_items), total)
         if offset + PAGE_SIZE >= total:
             break
         offset += PAGE_SIZE
@@ -56,10 +54,10 @@ async def main() -> None:
         assemblies = await _fetch_all(client, "v2/smartassemblies")
 
     logger.info("Ingesting %d killmails...", len(kills))
-    n_kills = _ingest_killmails(db, kills)
+    _ingest_killmails(db, kills)
 
     logger.info("Ingesting %d assemblies...", len(assemblies))
-    n_assemblies = _ingest_smart_assemblies(db, assemblies)
+    _ingest_smart_assemblies(db, assemblies)
 
     logger.info("Updating entities...")
     _update_entities(db)

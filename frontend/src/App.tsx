@@ -93,7 +93,12 @@ function App() {
         )}
 
         {/* Loading */}
-        {loading && <div className="text-[var(--eve-dim)]">Analyzing...</div>}
+        {loading && (
+          <div className="flex items-center gap-2 text-[var(--eve-dim)]">
+            <span className="pulse-green text-[var(--eve-green)]">///</span>
+            Analyzing entity...
+          </div>
+        )}
 
         {/* Tab Content */}
         {activeTab === 'intel' && (
@@ -111,8 +116,14 @@ function App() {
               </>
             )}
             {!fingerprint && !loading && !error && (
-              <div className="text-center py-12 text-[var(--eve-dim)]">
-                Search for an entity above to view their behavioral profile.
+              <div className="text-center py-16 space-y-4">
+                <div className="text-4xl text-[var(--eve-green)] pulse-green">///</div>
+                <div className="text-[var(--eve-dim)]">
+                  Search for an entity to view their behavioral fingerprint.
+                </div>
+                <div className="text-xs text-[var(--eve-dim)]">
+                  Try "Asterix" or "Kali" to see the deadliest pilots on the frontier.
+                </div>
               </div>
             )}
           </div>
