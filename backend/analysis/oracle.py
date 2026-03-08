@@ -42,9 +42,9 @@ async def fire_webhook(webhook_url: str, title: str, message: str, color: int = 
         async with httpx.AsyncClient() as client:
             r = await client.post(webhook_url, json=payload, timeout=5)
             if r.status_code not in (200, 204):
-                logger.error(f"Webhook failed {r.status_code}: {r.text[:200]}")
+                logger.error("Webhook failed %d: %s", r.status_code, r.text[:200])
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
+        logger.error("Webhook error: %s", e)
 
 
 async def check_watches() -> int:
@@ -168,6 +168,23 @@ async def check_watches() -> int:
                 (watch["id"], watch["user_id"], alert_title, alert_body, severity),
             )
 
+            # Publish to SSE event bus
+            try:
+                from backend.api.events import event_bus
+
+                event_bus.publish(
+                    "alert",
+                    {
+                        "watch_id": watch["id"],
+                        "user_id": watch["user_id"],
+                        "title": alert_title,
+                        "body": alert_body,
+                        "severity": severity,
+                    },
+                )
+            except Exception:
+                pass  # SSE is best-effort
+
             webhook_url = watch["webhook_url"] or settings.DISCORD_WEBHOOK_URL
             if webhook_url:
                 await fire_webhook(webhook_url, alert_title, alert_body, alert_color)
@@ -180,5 +197,5 @@ async def check_watches() -> int:
 
     if fired > 0:
         db.commit()
-        logger.info(f"Oracle fired {fired} alerts")
+        logger.info("Oracle fired %d alerts", fired)
     return fired

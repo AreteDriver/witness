@@ -32,7 +32,10 @@ function WatchTypeLabel({ type }: { type: string }) {
 }
 
 export function AccountPage() {
-  const { wallet, subscription, hasProvider, connect, disconnect, refreshSubscription } = useAuth();
+  const {
+    wallet, subscription, hasProvider, connect, disconnect,
+    refreshSubscription, eveCharacter, eveLogin, eveLogout,
+  } = useAuth();
   const [watches, setWatches] = useState<WatchData[]>([]);
   const [alerts, setAlerts] = useState<AlertData[]>([]);
   const [loadingWatches, setLoadingWatches] = useState(false);
@@ -68,18 +71,29 @@ export function AccountPage() {
             Connect your EVM wallet to access premium intelligence features,
             manage watches, and view your subscription status.
           </p>
-          {hasProvider ? (
+          <div className="flex gap-3 justify-center">
+            {hasProvider && (
+              <button
+                onClick={connect}
+                className="px-6 py-2 text-sm font-bold border border-[var(--eve-green)]
+                           text-[var(--eve-green)] rounded hover:bg-[var(--eve-green)]
+                           hover:text-[var(--eve-bg)] transition-colors"
+              >
+                Connect Wallet
+              </button>
+            )}
             <button
-              onClick={connect}
-              className="px-6 py-2 text-sm font-bold border border-[var(--eve-green)]
-                         text-[var(--eve-green)] rounded hover:bg-[var(--eve-green)]
+              onClick={eveLogin}
+              className="px-6 py-2 text-sm font-bold border border-[var(--eve-blue,#4488ff)]
+                         text-[var(--eve-blue,#4488ff)] rounded hover:bg-[var(--eve-blue,#4488ff)]
                          hover:text-[var(--eve-bg)] transition-colors"
             >
-              Connect Wallet
+              Login with EVE SSO
             </button>
-          ) : (
-            <p className="text-sm text-[var(--eve-red)]">
-              No wallet provider detected. Install MetaMask or another EVM wallet.
+          </div>
+          {!hasProvider && (
+            <p className="text-xs text-[var(--eve-dim)]">
+              Or install MetaMask for wallet-based authentication.
             </p>
           )}
 
@@ -116,6 +130,71 @@ export function AccountPage() {
 
   return (
     <div className="space-y-6">
+      {/* EVE Character Card */}
+      {eveCharacter && (
+        <div className="bg-[var(--eve-surface)] border border-[var(--eve-blue,#4488ff)] rounded-lg p-5 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-bold text-[var(--eve-blue,#4488ff)] uppercase tracking-wider">
+              EVE Identity
+            </h3>
+            <span className="w-2 h-2 rounded-full bg-[var(--eve-blue,#4488ff)]" />
+          </div>
+          <div className="space-y-3">
+            <div>
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Character</div>
+              <div className="text-sm text-[var(--eve-text)] font-bold">{eveCharacter.character_name}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Character ID</div>
+              <div className="text-sm text-[var(--eve-text)] font-mono">{eveCharacter.character_id}</div>
+            </div>
+            {eveCharacter.on_chain && (
+              <div>
+                <div className="text-[10px] text-[var(--eve-dim)] uppercase">On-Chain Activity</div>
+                <div className="flex gap-3 text-xs text-[var(--eve-text)]">
+                  <span>{eveCharacter.on_chain.kill_count} kills</span>
+                  <span>{eveCharacter.on_chain.death_count} deaths</span>
+                  <span>{eveCharacter.on_chain.gate_count} transits</span>
+                </div>
+              </div>
+            )}
+            {!eveCharacter.on_chain && (
+              <div className="text-xs text-[var(--eve-dim)]">
+                No on-chain activity found for this character.
+              </div>
+            )}
+          </div>
+          <button
+            onClick={eveLogout}
+            className="w-full px-3 py-1.5 text-xs font-bold border border-[var(--eve-border)]
+                       text-[var(--eve-dim)] rounded hover:border-[var(--eve-red)]
+                       hover:text-[var(--eve-red)] transition-colors"
+          >
+            Logout EVE SSO
+          </button>
+        </div>
+      )}
+
+      {/* EVE Login (if wallet connected but no EVE char) */}
+      {!eveCharacter && (
+        <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-5 space-y-4">
+          <h3 className="text-sm font-bold text-[var(--eve-blue,#4488ff)] uppercase tracking-wider">
+            EVE Identity
+          </h3>
+          <p className="text-xs text-[var(--eve-dim)]">
+            Link your EVE Online character to verify your identity and cross-reference on-chain data.
+          </p>
+          <button
+            onClick={eveLogin}
+            className="w-full px-3 py-1.5 text-xs font-bold border border-[var(--eve-blue,#4488ff)]
+                       text-[var(--eve-blue,#4488ff)] rounded hover:bg-[var(--eve-blue,#4488ff)]
+                       hover:text-[var(--eve-bg)] transition-colors"
+          >
+            Login with EVE SSO
+          </button>
+        </div>
+      )}
+
       {/* Wallet & Subscription */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Wallet Card */}

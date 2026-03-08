@@ -129,6 +129,19 @@ CREATE TABLE IF NOT EXISTS watcher_subscriptions (
     created_at INTEGER DEFAULT (unixepoch())
 );
 
+CREATE TABLE IF NOT EXISTS eve_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_hash TEXT UNIQUE NOT NULL,
+    character_id TEXT NOT NULL,
+    character_name TEXT NOT NULL,
+    access_token TEXT,
+    refresh_token TEXT,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER DEFAULT (unixepoch())
+);
+
+CREATE INDEX IF NOT EXISTS idx_eve_sessions_hash ON eve_sessions(session_hash);
+
 CREATE TABLE IF NOT EXISTS watch_alerts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     watch_id INTEGER NOT NULL,
@@ -167,7 +180,7 @@ def get_db() -> sqlite3.Connection:
         _connection = sqlite3.connect(str(db_path), check_same_thread=False)
         _connection.row_factory = sqlite3.Row
         _connection.executescript(SCHEMA)
-        logger.info(f"Database initialized at {db_path}")
+        logger.info("Database initialized at %s", db_path)
     return _connection
 
 

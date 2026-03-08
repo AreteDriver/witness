@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, Routes, Route } from 'react-router';
+import { useEventStream } from './hooks/useEventStream';
 import { api } from './api';
 import type { Fingerprint } from './api';
 import { SearchBar } from './components/SearchBar';
@@ -42,6 +43,19 @@ function Dashboard() {
   const [error, setError] = useState('');
   const [selectedEntity, setSelectedEntity] = useState('');
   const { wallet } = useAuth();
+  const [liveEvents, setLiveEvents] = useState<Array<{type: string, text: string, ts: number}>>([]);
+
+  const { connected } = useEventStream({
+    kill: (e) => {
+      setLiveEvents(prev => [{type: 'kill', text: `New kill detected (${e.data.new_count || 1} kills)`, ts: Date.now()}, ...prev].slice(0, 5));
+    },
+    alert: (e) => {
+      setLiveEvents(prev => [{type: 'alert', text: String(e.data.title || 'Alert triggered'), ts: Date.now()}, ...prev].slice(0, 5));
+    },
+    status: (_e) => {
+      setLiveEvents(prev => [{type: 'status', text: 'System update received', ts: Date.now()}, ...prev].slice(0, 5));
+    },
+  });
 
   const activeTab = tabFromPath(location.pathname);
 
@@ -107,6 +121,24 @@ function Dashboard() {
           </button>
         ))}
       </div>
+
+      {/* Live Feed */}
+      {liveEvents.length > 0 && (
+        <div className="text-xs text-[var(--eve-dim)] space-y-0.5 bg-[var(--eve-surface)] rounded px-3 py-2 border border-[var(--eve-border)]">
+          <div className="flex items-center gap-2 mb-1">
+            <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-[var(--eve-green)]' : 'bg-[var(--eve-red)]'}`} />
+            <span className="text-[var(--eve-green)] font-bold">LIVE</span>
+          </div>
+          {liveEvents.map((ev, i) => (
+            <div key={`${ev.ts}-${i}`} className="flex gap-2">
+              <span className="text-[var(--eve-dim)]">{new Date(ev.ts).toLocaleTimeString()}</span>
+              <span className={ev.type === 'kill' ? 'text-[var(--eve-red)]' : ev.type === 'alert' ? 'text-[var(--eve-yellow)]' : 'text-[var(--eve-text)]'}>
+                {ev.text}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Error */}
       {error && (

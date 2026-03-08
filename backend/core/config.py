@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     # Watcher Smart Assembly owner address (for assembly tracker)
     WATCHER_OWNER_ADDRESS: str = ""
 
+    # EVE SSO (CCP OAuth2)
+    EVE_SSO_CLIENT_ID: str = ""
+    EVE_SSO_SECRET_KEY: str = ""
+    EVE_SSO_CALLBACK_URL: str = ""
+
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000

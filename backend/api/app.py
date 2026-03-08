@@ -13,6 +13,8 @@ from slowapi.errors import RateLimitExceeded
 from backend.analysis.naming_engine import refresh_all_titles
 from backend.analysis.oracle import check_watches
 from backend.analysis.story_feed import generate_feed_items
+from backend.api.auth import router as auth_router
+from backend.api.events import router as events_router
 from backend.api.rate_limit import limiter
 from backend.api.routes import router
 from backend.bot.discord_bot import run_bot  # noqa: E402
@@ -104,6 +106,8 @@ async def security_headers(request: Request, call_next):
 
 
 app.include_router(router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
+app.include_router(events_router, prefix="/api")
 
 # Serve frontend static files if built
 FRONTEND_DIR = (Path(__file__).parent.parent.parent / "frontend" / "dist").resolve()

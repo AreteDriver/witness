@@ -79,7 +79,7 @@ def entity_autocomplete(get_db):
     """Build an autocomplete callback with injected get_db."""
 
     async def _autocomplete(
-        interaction: discord.Interaction,  # type: ignore[name-defined]
+        interaction,
         current: str,
     ) -> list:
         if len(current) < 2:
@@ -92,6 +92,17 @@ def entity_autocomplete(get_db):
                ORDER BY event_count DESC LIMIT 10""",
             (f"%{current}%", f"%{current}%"),
         ).fetchall()
+        if not HAS_DISCORD:
+            return [
+                {
+                    "name": (
+                        f"[{r['entity_type'][:4].upper()}] "
+                        f"{r['display_name'] or r['entity_id'][:20]}"
+                    ),
+                    "value": r["entity_id"],
+                }
+                for r in rows
+            ]
         return [
             app_commands.Choice(
                 name=(

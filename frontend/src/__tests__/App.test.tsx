@@ -5,6 +5,16 @@ import { MemoryRouter } from "react-router";
 import App from "../App";
 import { AuthProvider } from "../contexts/AuthContext";
 
+// Mock the event stream hook with capturable handlers
+let mockEventHandlers: Record<string, (e: { data: Record<string, unknown> }) => void> = {};
+let mockConnected = false;
+vi.mock("../hooks/useEventStream", () => ({
+  useEventStream: (handlers: Record<string, (e: { data: Record<string, unknown> }) => void>) => {
+    mockEventHandlers = handlers;
+    return { connected: mockConnected, lastEvent: null };
+  },
+}));
+
 // Mock all child components that make API calls
 vi.mock("../components/HealthBanner", () => ({
   HealthBanner: () => <div data-testid="health-banner">HealthBanner</div>,
@@ -151,5 +161,22 @@ describe("App", () => {
   it("renders entity page at /entity/:id route", () => {
     renderApp("/entity/char-001");
     expect(screen.getByTestId("entity-page")).toBeInTheDocument();
+  });
+
+  it("shows live ticker when events arrive via SSE", async () => {
+    mockConnected = true;
+    renderApp();
+
+    // Simulate a kill event arriving via the captured handlers
+    const { act } = await import("@testing-library/react");
+    act(() => {
+      mockEventHandlers.kill?.({ data: { new_count: 3 } });
+    });
+
+    expect(screen.getByText("LIVE")).toBeInTheDocument();
+    expect(screen.getByText(/New kill detected/)).toBeInTheDocument();
+
+    // Reset
+    mockConnected = false;
   });
 });

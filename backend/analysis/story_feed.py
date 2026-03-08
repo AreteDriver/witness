@@ -201,7 +201,7 @@ def generate_feed_items() -> int:
 
     if total > 0:
         db.commit()
-        logger.info(f"Generated {total} new story feed items")
+        logger.info("Generated %d new story feed items", total)
     return total
 
 

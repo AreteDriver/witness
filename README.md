@@ -22,7 +22,7 @@ The chain never forgets. Neither does Witness.
 - **190 killers** with confirmed kill counts (Asterix #1: 484 kills)
 - **170 earned titles** computed from on-chain stats
 - **224 story feed items** auto-generated from event patterns
-- **238 tests** passing, all lint clean
+- **362 tests** passing (85% coverage), all lint clean
 
 ---
 
@@ -53,6 +53,11 @@ The chain never forgets. Neither does Witness.
   - **Restraint** — Avoidance of excessive force, new player protection
 - **Smart Assembly Gating** — Reputation scores flow back on-chain. Deployers can set thresholds: "deny docking if trust < 40"
 - **Designed for Smart Contracts** — Scores structured for direct consumption by WatcherSystem.sol
+
+### Real-Time Intelligence
+- **Server-Sent Events** — Live push feed for kills, alerts, and system status
+- **Live Ticker** — Dashboard shows real-time events as they happen (kills, alerts, status)
+- **EVE SSO Login** — Verify character identity via CCP's OAuth2, cross-reference with on-chain data
 
 ### The Oracle (Intelligence Layer)
 - **Standing Watches** — Monitor entities, gates, systems with Discord/webhook alerts
@@ -116,7 +121,7 @@ Subscription status is verified on-chain. The backend checks wallet subscription
 
 ### Tech Stack
 - **Backend**: Python 3.12, FastAPI, SQLite WAL
-- **Frontend**: React 19, Vite 7, Tailwind CSS 4, TypeScript (4 tabs, 12 components)
+- **Frontend**: React 19, Vite 7, Tailwind CSS 4, TypeScript (5 tabs, 20 components)
 - **Intelligence**: Anthropic API (Claude) for narrative generation
 - **On-Chain**: MUD v2, Solidity (WatcherSystem.sol)
 - **Bot**: discord.py with slash commands
@@ -162,7 +167,7 @@ docker compose up -d
 
 ## API Endpoints
 
-All endpoints under `/api/` prefix. 28 endpoints total.
+All endpoints under `/api/` prefix. 33 endpoints total.
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -193,12 +198,18 @@ All endpoints under `/api/` prefix. 28 endpoints total.
 | `/api/subscribe` | POST | Initiate subscription (triggers on-chain verification) |
 | `/api/assemblies` | GET | Watcher Assembly Network summary (coverage, fleet health) |
 | `/api/assemblies/list` | GET | List deployed Watcher assemblies with online/offline status |
+| `/api/auth/eve/login` | GET | EVE SSO authorization URL |
+| `/api/auth/eve/callback` | GET | OAuth2 callback — exchange code for session |
+| `/api/auth/eve/me` | GET | Current EVE character info (with on-chain cross-ref) |
+| `/api/auth/eve/logout` | POST | Clear EVE SSO session |
+| `/api/events` | GET | SSE stream (kills, alerts, status) |
+| `/api/events/status` | GET | SSE connection status |
 
 ---
 
 ## Discord Bot
 
-5 slash commands for in-game intelligence:
+10 slash commands for in-game intelligence:
 
 | Command | Description |
 |---|---|
@@ -207,6 +218,12 @@ All endpoints under `/api/` prefix. 28 endpoints total.
 | `/leaderboard <category>` | Top killers, most deaths, most traveled |
 | `/feed` | Recent story feed items |
 | `/compare <entity1> <entity2>` | Fingerprint comparison — alt detection |
+| `/locate <id>` | Full entity lookup with danger rating |
+| `/history <id>` | AI-generated narrative dossier |
+| `/profile <id>` | Full behavioral fingerprint |
+| `/opsec <id>` | OPSEC score analysis |
+| `/watch <type> <target>` | Set a standing intelligence watch |
+| `/unwatch <target>` | Remove a standing watch |
 
 Set `WITNESS_DISCORD_TOKEN` to activate.
 
@@ -214,12 +231,15 @@ Set `WITNESS_DISCORD_TOKEN` to activate.
 
 ## Dashboard
 
-React SPA with four tabs and 12 components:
+React SPA with five tabs and 20 components:
 
 - **Intelligence** — Search any entity, view fingerprint card (temporal/route/social/threat profiles), activity heatmap, event timeline, AI narrative, reputation score
-- **Tactical** — Kill network graph, danger zone heatmap, active hunter streaks, corp combat rankings
+- **Tactical** — Kill network graph, danger zone heatmap, active hunter streaks, corp combat rankings, assembly map
 - **Compare** — Side-by-side fingerprint comparison with alt/fleet-mate detection
 - **Feed & Rankings** — Live story feed + leaderboard with category switching
+- **Account** — Wallet connection, EVE SSO identity, subscription management, standing watches
+
+Live SSE ticker shows real-time kills, alerts, and system updates as they happen.
 
 ---
 
@@ -252,14 +272,20 @@ Deterministic titles computed from on-chain stats. Same data = same title for ev
 ## Development
 
 ```bash
-# Test (238 passing)
+# Backend tests (362 passing, 85% coverage)
 pytest tests/ -v
+
+# Frontend tests (45 passing)
+cd frontend && npx vitest run
 
 # Lint
 ruff check backend/ tests/ && ruff format backend/ tests/
 
 # Coverage
 pytest --cov=backend --cov-fail-under=80 tests/
+
+# Seed demo data (for hackathon demos)
+python scripts/seed_demo.py
 ```
 
 ---
@@ -274,6 +300,9 @@ pytest --cov=backend --cov-fail-under=80 tests/
 | `WITNESS_ANTHROPIC_API_KEY` | (empty) | Enables AI narratives (template fallback without) |
 | `WITNESS_DISCORD_TOKEN` | (empty) | Enables Discord bot |
 | `WITNESS_DISCORD_WEBHOOK_URL` | (empty) | Alert delivery webhook |
+| `WITNESS_EVE_SSO_CLIENT_ID` | (empty) | CCP EVE SSO application client ID |
+| `WITNESS_EVE_SSO_SECRET_KEY` | (empty) | CCP EVE SSO application secret |
+| `WITNESS_EVE_SSO_CALLBACK_URL` | (empty) | OAuth2 callback URL |
 
 ---
 

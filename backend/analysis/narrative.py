@@ -227,12 +227,12 @@ def generate_dossier_narrative(entity_id: str) -> str:
         )
         content = msg.content[0].text
         _store_cache(db, entity_id, "dossier", eh, content)
-        logger.info(f"Generated dossier for {entity_id}")
+        logger.info("Generated dossier for %s", entity_id)
         return content
     except ValueError as e:
         return f"Narrative unavailable: {e}"
     except Exception as e:
-        logger.error(f"Narrative generation failed: {e}")
+        logger.error("Narrative generation failed: %s", e)
         return _template_narrative(profile_data)
 
 
@@ -290,10 +290,10 @@ def generate_battle_report(events: list[dict]) -> dict:
                 return {"error": "Failed to parse battle report", "raw": content}
 
         _store_cache(db, cache_key, "battle", eh, json.dumps(report))
-        logger.info(f"Generated battle report ({len(events)} events)")
+        logger.info("Generated battle report (%d events)", len(events))
         return report
     except ValueError as e:
         return {"error": str(e)}
     except Exception as e:
-        logger.error(f"Battle report generation failed: {e}")
+        logger.error("Battle report generation failed: %s", e)
         return {"error": "Battle report generation temporarily unavailable."}

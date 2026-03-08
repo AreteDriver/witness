@@ -234,6 +234,31 @@ export interface AlertData {
   created_at: number;
 }
 
+export interface EveCharacter {
+  character_id: string;
+  character_name: string;
+  logged_in_at: number;
+  on_chain: Entity | null;
+}
+
+export interface EveSSOLogin {
+  auth_url: string;
+  state: string;
+}
+
+export interface EveSSOCallback {
+  session_token: string;
+  character_id: string;
+  character_name: string;
+}
+
+const EVE_SESSION_KEY = 'witness_eve_session';
+
+function getEveHeaders(): Record<string, string> {
+  const session = localStorage.getItem(EVE_SESSION_KEY);
+  return session ? { 'X-EVE-Session': session } : {};
+}
+
 export const api = {
   health: () => fetchJson<{ status: string; tables: Record<string, number> }>('/health'),
   search: (q: string) => fetchJson<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`),
@@ -280,4 +305,19 @@ export const api = {
     fetchJson<{ alerts: AlertData[] }>(`/alerts?user_id=${encodeURIComponent(userId)}`),
   markAlertRead: (alertId: number) =>
     postJson<{ status: string }>(`/alerts/${alertId}/read`, {}),
+
+  // EVE SSO
+  eveSSOLogin: (redirectUri?: string) =>
+    fetchJson<EveSSOLogin>(`/auth/eve/login${redirectUri ? `?redirect_uri=${encodeURIComponent(redirectUri)}` : ''}`),
+  eveSSOCallback: (code: string, state: string) =>
+    fetchJson<EveSSOCallback>(`/auth/eve/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`),
+  eveMe: () =>
+    fetchJson<EveCharacter>('/auth/eve/me', {
+      headers: getEveHeaders(),
+    }),
+  eveLogout: () =>
+    postJson<{ status: string }>('/auth/eve/logout', {}),
+
+  // SSE status
+  sseStatus: () => fetchJson<{ subscribers: number; timestamp: number }>('/events/status'),
 };

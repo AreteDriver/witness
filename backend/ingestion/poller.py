@@ -358,6 +358,26 @@ async def run_poller() -> None:
                         new_assemblies,
                         new_subs,
                     )
+                    # Publish to SSE event bus
+                    try:
+                        from backend.api.events import event_bus
+
+                        if new_kills:
+                            event_bus.publish(
+                                "kill",
+                                {
+                                    "new_count": new_kills,
+                                },
+                            )
+                        if new_assemblies:
+                            event_bus.publish(
+                                "status",
+                                {
+                                    "new_assemblies": new_assemblies,
+                                },
+                            )
+                    except Exception:
+                        pass  # SSE is best-effort
                 else:
                     db.commit()
 

@@ -19,7 +19,10 @@ from backend.analysis.fingerprint import (
     TemporalProfile,
     ThreatProfile,
 )
+from backend.bot.discord_bot import HAS_DISCORD
 from backend.db.database import SCHEMA
+
+needs_discord = pytest.mark.skipif(not HAS_DISCORD, reason="discord.py not installed")
 
 # ---- Helpers ----
 
@@ -211,6 +214,8 @@ def mock_tree():
 @pytest.fixture()
 def registered(mock_tree, seeded_db):
     """Register commands and return (commands_dict, db)."""
+    if not HAS_DISCORD:
+        pytest.skip("discord.py not installed")
     from backend.bot.discord_bot import _register_commands
 
     mock_fp = _make_fingerprint()
@@ -264,8 +269,11 @@ async def test_autocomplete_returns_choices(seeded_db):
     ac = entity_autocomplete(lambda: seeded_db)
     result = await ac(MagicMock(), "Test")
     assert len(result) == 1
-    assert result[0].value == "char-001"
-    assert "CHAR" in result[0].name
+    item = result[0]
+    val = item["value"] if isinstance(item, dict) else item.value
+    name = item["name"] if isinstance(item, dict) else item.name
+    assert val == "char-001"
+    assert "CHAR" in name
 
 
 @pytest.mark.asyncio
@@ -286,7 +294,8 @@ async def test_autocomplete_gate_type_label(seeded_db):
     ac = entity_autocomplete(lambda: seeded_db)
     result = await ac(MagicMock(), "Alpha")
     assert len(result) == 1
-    assert "GATE" in result[0].name
+    name = result[0]["name"] if isinstance(result[0], dict) else result[0].name
+    assert "GATE" in name
 
 
 # ---- /witness ----
@@ -572,6 +581,7 @@ async def test_compare_verdict_alt(registered):
     assert any("ALT" in v for v in verdicts)
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_compare_no_fingerprints():
     """Compare handles missing fingerprints gracefully."""
@@ -833,6 +843,7 @@ async def test_profile_found(registered):
     assert "OPSEC" in embed.description
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_profile_not_found():
     """Profile shows not found for unknown entity."""
@@ -900,6 +911,7 @@ async def test_profile_no_social(registered):
     assert "Social" not in field_names
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_profile_extreme_threat_color():
     """Profile uses red for extreme threat."""
@@ -949,6 +961,7 @@ async def test_opsec_found(registered):
     assert "75/100" in embed.description
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_opsec_not_found():
     """Opsec shows not found for unknown entity."""
@@ -979,6 +992,7 @@ async def test_opsec_not_found():
     assert "not found" in msg
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_opsec_insufficient_data():
     """Opsec rejects entities with < 20 events."""
@@ -1013,6 +1027,7 @@ async def test_opsec_insufficient_data():
     assert "Not enough data" in msg
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_opsec_color_green():
     """Opsec uses green for score >= 60."""
@@ -1047,6 +1062,7 @@ async def test_opsec_color_green():
     assert embed.color.value == 0x00FF88
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_opsec_color_red():
     """Opsec uses red for score < 40."""
@@ -1109,6 +1125,7 @@ async def test_run_bot_no_token():
 # ---- Distinct verdict in compare ----
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_compare_distinct():
     """Compare shows 'Distinct' for low similarity."""
@@ -1156,6 +1173,7 @@ async def test_compare_distinct():
     assert any("Distinct" in v for v in verdicts)
 
 
+@needs_discord
 @pytest.mark.asyncio
 async def test_compare_fleet_mate():
     """Compare shows fleet mate verdict."""

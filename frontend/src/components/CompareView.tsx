@@ -49,18 +49,18 @@ export function CompareView({ initialEntity, onSelect }: Props) {
         Fingerprint Comparison — Alt Detection
       </h3>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <input
           value={entity1}
           onChange={(e) => setEntity1(e.target.value)}
           placeholder="Entity 1 ID..."
-          className="bg-[var(--eve-bg)] border border-[var(--eve-border)] rounded px-3 py-1.5 text-sm text-[var(--eve-text)] placeholder-[var(--eve-dim)] focus:border-[var(--eve-green)] focus:outline-none"
+          className="bg-[var(--eve-bg)] border border-[var(--eve-border)] rounded px-3 py-1.5 text-sm text-[var(--eve-text)] placeholder-[var(--eve-dim)] focus:border-[var(--eve-green)] focus:outline-none w-full"
         />
         <input
           value={entity2}
           onChange={(e) => setEntity2(e.target.value)}
           placeholder="Entity 2 ID..."
-          className="bg-[var(--eve-bg)] border border-[var(--eve-border)] rounded px-3 py-1.5 text-sm text-[var(--eve-text)] placeholder-[var(--eve-dim)] focus:border-[var(--eve-green)] focus:outline-none"
+          className="bg-[var(--eve-bg)] border border-[var(--eve-border)] rounded px-3 py-1.5 text-sm text-[var(--eve-text)] placeholder-[var(--eve-dim)] focus:border-[var(--eve-green)] focus:outline-none w-full"
         />
       </div>
 
@@ -76,7 +76,7 @@ export function CompareView({ initialEntity, onSelect }: Props) {
 
       {result && (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <button onClick={() => onSelect(result.entity_1)} className="text-left text-sm text-[var(--eve-green)] hover:underline font-mono truncate">
               {result.entity_1}
             </button>
@@ -93,7 +93,7 @@ export function CompareView({ initialEntity, onSelect }: Props) {
             <SimilarityBar label="OVERALL" value={result.overall_similarity} />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             {result.likely_alt && (
               <span className="px-3 py-1 bg-red-900/60 text-red-300 rounded text-xs font-bold uppercase">
                 Likely Alt Account

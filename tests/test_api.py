@@ -517,9 +517,7 @@ def test_list_watches_after_create(client):
             "target_id": "char-001",
         },
     )
-    r = client.get(
-        "/api/watches?user_id=0x1234567890abcdef1234567890abcdef12345678"
-    )
+    r = client.get("/api/watches?user_id=0x1234567890abcdef1234567890abcdef12345678")
     assert r.status_code == 200
     watches = r.json()["watches"]
     assert len(watches) == 1

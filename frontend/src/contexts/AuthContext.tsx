@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { api } from '../api';
-import type { SubscriptionData } from '../api';
+import type { SubscriptionData, EveCharacter } from '../api';
 
 declare global {
   interface Window {
@@ -28,16 +28,21 @@ interface AuthState {
   connect: () => Promise<void>;
   disconnect: () => void;
   refreshSubscription: () => Promise<void>;
+  eveCharacter: EveCharacter | null;
+  eveLogin: () => Promise<void>;
+  eveLogout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
 const STORAGE_KEY = 'witness_wallet';
+const EVE_SESSION_KEY = 'witness_eve_session';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [wallet, setWallet] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [eveCharacter, setEveCharacter] = useState<EveCharacter | null>(null);
   const hasProvider = typeof window !== 'undefined' && !!window.ethereum;
 
   const fetchSubscription = useCallback(async (addr: string) => {
@@ -78,6 +83,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       })
       .catch(() => localStorage.removeItem(STORAGE_KEY));
+  }, []);
+
+  // Restore EVE session from localStorage
+  useEffect(() => {
+    const session = localStorage.getItem(EVE_SESSION_KEY);
+    if (!session) return;
+
+    api.eveMe()
+      .then(setEveCharacter)
+      .catch(() => {
+        localStorage.removeItem(EVE_SESSION_KEY);
+        setEveCharacter(null);
+      });
+  }, []);
+
+  // Handle EVE SSO callback (check URL params on mount)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    if (!code || !state) return;
+
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
+
+    api.eveSSOCallback(code, state)
+      .then((result) => {
+        localStorage.setItem(EVE_SESSION_KEY, result.session_token);
+        // Fetch full character info
+        return api.eveMe();
+      })
+      .then(setEveCharacter)
+      .catch(() => setEveCharacter(null));
   }, []);
 
   // Fetch subscription when wallet changes
@@ -129,6 +167,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (wallet) await fetchSubscription(wallet);
   }, [wallet, fetchSubscription]);
 
+  const eveLogin = useCallback(async () => {
+    try {
+      const callbackUrl = `${window.location.origin}/`;
+      const result = await api.eveSSOLogin(callbackUrl);
+      window.location.href = result.auth_url;
+    } catch {
+      // SSO not configured
+    }
+  }, []);
+
+  const eveLogout = useCallback(async () => {
+    try {
+      await api.eveLogout();
+    } catch {
+      // Ignore
+    }
+    localStorage.removeItem(EVE_SESSION_KEY);
+    setEveCharacter(null);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -139,6 +197,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         connect,
         disconnect,
         refreshSubscription,
+        eveCharacter,
+        eveLogin,
+        eveLogout,
       }}
     >
       {children}
