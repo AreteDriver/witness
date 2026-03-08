@@ -113,7 +113,7 @@ export function StreakTracker({ entityId, onSelect }: Props) {
                       onClick={() => onSelect(s.entity_id)}
                       className="text-sm text-[var(--eve-green)] hover:underline"
                     >
-                      {s.entity_id.slice(0, 12)}
+                      {s.display_name || s.entity_id.slice(0, 12)}
                     </button>
                     <div className="flex gap-2 items-center">
                       <span className="text-xs" style={{ color: style.color }}>

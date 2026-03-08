@@ -1,6 +1,6 @@
 # Witness Demo Script
 
-**Duration**: 3-5 minutes
+**Duration**: 4-6 minutes
 **URL**: https://witness-evefrontier.fly.dev
 
 ---
@@ -32,7 +32,16 @@ Show the dashboard landing page. Point out the health banner showing live data c
 
 > "Witness can compare behavioral fingerprints to detect alts and fleet mates. Same schedules, same routes, same associates — the chain doesn't lie."
 
-## 4. Feed & Leaderboards (45s)
+## 4. Tactical Intelligence (60s)
+
+- Switch to **Tactical** tab
+- Show the **Kill Network**: top kill relationships, vendetta detection
+- Show **Danger Zones**: IL7-JQ9 with 51K kills rated EXTREME, toggle time windows
+- Show **Active Hunters**: Asterix on a 140-kill streak, Kali Anemoi at 107
+
+> "The Tactical tab is where Witness turns raw data into battlefield awareness. Who's hunting whom, which systems are death traps, and who's currently on fire. Asterix has a 140-kill streak — 25 kills this week alone."
+
+## 5. Feed & Leaderboards (45s)
 
 - Switch to **Feed & Rankings** tab
 - Show the **Story Feed**: auto-generated news items (engagement clusters, hunter milestones)
@@ -41,23 +50,23 @@ Show the dashboard landing page. Point out the health banner showing live data c
 
 > "The story feed auto-generates news from chain data. No AI needed — pure event detection. Who's fighting, where, and how often."
 
-## 5. Earned Titles (30s)
+## 6. Earned Titles (30s)
 
 - Point out titles on entity profiles: "The Hunter", "The Marked", "The Reaper"
 - Explain: deterministic, same data = same title, everyone sees the same names
 
 > "Titles are earned, not assigned. Get 50 kills, you're The Reaper. Die 10 times, you're The Marked. The chain writes the story."
 
-## 6. Architecture & Tech (30s)
+## 7. Architecture & Tech (30s)
 
 - Briefly mention the stack:
   - Never-crash poller (30s cycle, error isolation)
   - SQLite WAL for fast reads
   - Template narratives (no API key required) + AI upgrade path
-  - 132 tests, 89% coverage
+  - 185 tests
   - Docker + Fly.io deployment
 
-## 7. Close (15s)
+## 8. Close (15s)
 
 > "The chain is the source of truth. Witness is the interpreter. Free lore for the community. Paid intelligence for those who need an edge."
 
@@ -71,9 +80,9 @@ Show the dashboard landing page. Point out the health banner showing live data c
 - 190 killers with confirmed kill counts
 - 170 earned titles
 - 220 auto-generated story feed items
-- 13 API endpoints
+- 22 API endpoints
 - 5 Discord slash commands
-- 132 tests passing
+- 185 tests passing
 
 ## Backup: API Demo (if frontend has issues)
 

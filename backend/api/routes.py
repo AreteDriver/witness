@@ -6,6 +6,11 @@ import time
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from backend.analysis.corp_intel import (
+    detect_corp_rivalries,
+    get_corp_leaderboard,
+    get_corp_profile,
+)
 from backend.analysis.entity_resolver import resolve_entity
 from backend.analysis.fingerprint import build_fingerprint, compare_fingerprints
 from backend.analysis.hotzones import get_hotzones, get_system_activity
@@ -300,6 +305,30 @@ async def get_streaks(limit: int = Query(default=10, le=50)):
     """Entities currently on kill streaks."""
     db = get_db()
     return {"streaks": get_hot_streaks(db, limit=limit)}
+
+
+@router.get("/corps")
+async def get_corps(limit: int = Query(default=20, le=50)):
+    """Corporation leaderboard by combat activity."""
+    db = get_db()
+    return {"corps": get_corp_leaderboard(db, limit=limit)}
+
+
+@router.get("/corps/rivalries")
+async def get_rivalries(limit: int = Query(default=10, le=50)):
+    """Inter-corporation rivalries (mutual kills)."""
+    db = get_db()
+    return {"rivalries": detect_corp_rivalries(db, limit=limit)}
+
+
+@router.get("/corp/{corp_id}")
+async def get_corp(corp_id: str):
+    """Detailed corporation profile."""
+    db = get_db()
+    profile = get_corp_profile(db, corp_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Corporation not found")
+    return profile.to_dict()
 
 
 class BattleReportRequest(BaseModel):

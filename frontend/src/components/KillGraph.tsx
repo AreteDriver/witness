@@ -42,13 +42,13 @@ export function KillGraph({ entityId, onSelect }: Props) {
             <div key={i} className="bg-red-900/20 border border-red-900/40 rounded p-2 flex justify-between items-center text-sm">
               <div className="flex gap-2 items-center">
                 <button onClick={() => onSelect(v.entity_1)} className="text-[var(--eve-green)] hover:underline">
-                  {v.entity_1.slice(0, 12)}
+                  {v.entity_1_name || v.entity_1.slice(0, 12)}
                 </button>
                 <span className="text-[var(--eve-red)]">{v.kills_1_to_2}</span>
                 <span className="text-[var(--eve-dim)]">vs</span>
                 <span className="text-[var(--eve-red)]">{v.kills_2_to_1}</span>
                 <button onClick={() => onSelect(v.entity_2)} className="text-[var(--eve-green)] hover:underline">
-                  {v.entity_2.slice(0, 12)}
+                  {v.entity_2_name || v.entity_2.slice(0, 12)}
                 </button>
               </div>
               <span className="text-xs text-[var(--eve-dim)]">{v.total} total</span>
@@ -67,11 +67,11 @@ export function KillGraph({ entityId, onSelect }: Props) {
             <div key={i} className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded px-3 py-1.5 flex justify-between items-center text-sm">
               <div className="flex gap-2 items-center">
                 <button onClick={() => onSelect(e.attacker)} className="text-[var(--eve-green)] hover:underline text-xs">
-                  {e.attacker.slice(0, 12)}
+                  {e.attacker_name || e.attacker.slice(0, 12)}
                 </button>
                 <span className="text-[var(--eve-dim)]">killed</span>
                 <button onClick={() => onSelect(e.victim)} className="text-[var(--eve-text)] hover:underline text-xs">
-                  {e.victim.slice(0, 12)}
+                  {e.victim_name || e.victim.slice(0, 12)}
                 </button>
               </div>
               <span className="font-bold text-xs" style={{ color: dangerColor(e.count) }}>

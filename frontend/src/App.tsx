@@ -13,6 +13,7 @@ import { HealthBanner } from './components/HealthBanner';
 import { KillGraph } from './components/KillGraph';
 import { HotzoneMap } from './components/HotzoneMap';
 import { StreakTracker } from './components/StreakTracker';
+import { CorpIntel } from './components/CorpIntel';
 
 type Tab = 'intel' | 'tactical' | 'compare' | 'feed';
 
@@ -121,6 +122,7 @@ function App() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-6">
               <KillGraph entityId={selectedEntity || undefined} onSelect={loadEntity} />
+              <CorpIntel />
             </div>
             <div className="space-y-6">
               <HotzoneMap />

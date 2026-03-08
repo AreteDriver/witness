@@ -16,10 +16,11 @@ The chain never forgets. Neither does Witness.
 ### Live Data (as of launch)
 - **4,795 killmails** ingested and analyzed
 - **35,278 smart assemblies** (gates, turrets, storage, manufacturing)
-- **36,013 entities** tracked with behavioral fingerprints
-- **190 killers** with confirmed kill counts
+- **36,085 entities** tracked with behavioral fingerprints
+- **190 killers** with confirmed kill counts (Asterix #1: 484 kills)
 - **170 earned titles** computed from on-chain stats
-- **220 story feed items** auto-generated from event patterns
+- **224 story feed items** auto-generated from event patterns
+- **185 tests** passing, all lint clean
 
 ---
 
@@ -29,10 +30,16 @@ The chain never forgets. Neither does Witness.
 - **Entity Dossiers** — Full profiles with stats, timelines, danger ratings
 - **Behavioral Fingerprints** — Temporal patterns, route analysis, social networks, threat assessment, OPSEC scoring
 - **Earned Titles** — Deterministic names from chain stats: "The Reaper" (50+ kills), "The Ghost" (30+ transits, zero combat), "The Meatgrinder" (20+ nearby kills on a gate)
-- **Story Feed** — Auto-generated news: engagement clusters, new entity appearances, hunter milestones
+- **Story Feed** — Auto-generated news: engagement clusters, streak milestones, new entity appearances, hunter milestones
 - **Leaderboards** — Top killers, most deaths, deadliest gates, most traveled
 - **Alt Detection** — Fingerprint comparison to identify likely alts and fleet mates
 - **AI Narratives** — Entity dossiers and battle reports generated from chain data
+
+### Tactical Intelligence (NEW)
+- **Kill Network** — Attacker→victim graph with vendetta detection (mutual kills between entities)
+- **Danger Zones** — Solar systems ranked by kill density with time window filtering (24h/7d/30d/all)
+- **Streak Tracker** — Kill streak tracking, momentum status (hot/active/cooling/dormant), active hunter board
+- **Corp Intel** — Corporation combat rankings, member aggregation, inter-corp rivalry detection
 
 ### The Oracle (Intelligence Layer)
 - **Standing Watches** — Monitor entities, gates, systems with Discord/webhook alerts
@@ -47,20 +54,22 @@ The chain never forgets. Neither does Witness.
 ```
 World API (30s polling) → Poller → SQLite WAL
                                        ↓
-                    ┌──────────────────┼──────────────────┐
-                    ↓                  ↓                  ↓
-             Entity Resolver    Naming Engine      Story Feed
-                    ↓                  ↓                  ↓
-             Fingerprint       Earned Titles      Auto-News
-                Builder              ↓                  ↓
-                    ↓           ┌─────┴─────┐           ↓
-                    ↓           ↓           ↓           ↓
-               FastAPI API ←────────────────────────────┘
-                    ↓
-          ┌─────────┼─────────┐
-          ↓         ↓         ↓
-    React SPA   Discord   Webhooks
-                  Bot
+            ┌──────────┬───────────────┼───────────┬──────────┐
+            ↓          ↓               ↓           ↓          ↓
+      Entity      Naming         Story Feed   Kill Graph  Hotzones
+      Resolver    Engine         + Streaks    + Vendettas  + Corps
+            ↓          ↓               ↓           ↓          ↓
+      Fingerprint  Earned            Auto-      Network    Danger
+       Builder     Titles            News      Analysis    Zones
+            ↓          ↓               ↓           ↓          ↓
+            └──────────┴───────────────┼───────────┴──────────┘
+                                       ↓
+                                  FastAPI API (22 endpoints)
+                                       ↓
+                         ┌─────────────┼──────────┐
+                         ↓             ↓          ↓
+                    React SPA      Discord    Webhooks
+                    (4 views)        Bot
 ```
 
 ### Tech Stack
@@ -124,6 +133,14 @@ All endpoints under `/api/` prefix.
 | `/api/titles` | GET | Entities with earned titles |
 | `/api/search?q=` | GET | Search entities by name or address |
 | `/api/fingerprint/compare` | GET | Compare two entity fingerprints (alt detection) |
+| `/api/kill-graph` | GET | Kill network (who kills whom, vendettas) |
+| `/api/hotzones` | GET | Dangerous systems ranked by kill density |
+| `/api/hotzones/{system_id}` | GET | System detail (hourly distribution, top victims) |
+| `/api/entity/{id}/streak` | GET | Kill streak and momentum data |
+| `/api/streaks` | GET | Active hunters on kill streaks |
+| `/api/corps` | GET | Corporation combat leaderboard |
+| `/api/corps/rivalries` | GET | Inter-corporation rivalries |
+| `/api/corp/{id}` | GET | Corporation profile (members, kills, systems) |
 | `/api/battle-report` | POST | AI battle analysis from event sequence |
 | `/api/watches` | POST | Create standing intelligence watch |
 | `/api/watches/{id}` | DELETE | Remove watch |
@@ -148,9 +165,10 @@ Set `WITNESS_DISCORD_TOKEN` to activate.
 
 ## Dashboard
 
-React SPA with three views:
+React SPA with four views:
 
 - **Intelligence** — Search any entity, view fingerprint card (temporal/route/social/threat profiles), activity heatmap, event timeline, AI narrative
+- **Tactical** — Kill network graph, danger zone heatmap, active hunter streaks, corp combat rankings
 - **Compare** — Side-by-side fingerprint comparison with alt/fleet-mate detection
 - **Feed & Rankings** — Live story feed + leaderboard with category switching
 
@@ -185,7 +203,7 @@ Deterministic titles computed from on-chain stats. Same data = same title for ev
 ## Development
 
 ```bash
-# Test (132 passing, 89% coverage)
+# Test (185 passing)
 pytest tests/ -v
 
 # Lint

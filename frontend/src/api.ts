@@ -99,8 +99,8 @@ export interface SearchResult {
 
 export interface KillGraphData {
   nodes: { id: string; name: string; kills: number; deaths: number }[];
-  edges: { attacker: string; victim: string; count: number; systems: string[] }[];
-  vendettas: { entity_1: string; entity_2: string; kills_1_to_2: number; kills_2_to_1: number; total: number }[];
+  edges: { attacker: string; victim: string; attacker_name: string; victim_name: string; count: number; systems: string[] }[];
+  vendettas: { entity_1: string; entity_2: string; entity_1_name: string; entity_2_name: string; kills_1_to_2: number; kills_2_to_1: number; total: number }[];
   total_edges: number;
   total_nodes: number;
 }
@@ -117,6 +117,7 @@ export interface HotzoneData {
 
 export interface StreakData {
   entity_id: string;
+  display_name?: string;
   current_streak: number;
   longest_streak: number;
   last_kill_time: number;
@@ -124,6 +125,22 @@ export interface StreakData {
   kills_7d: number;
   kills_30d: number;
   avg_kills_per_week: number;
+}
+
+export interface CorpData {
+  corp_id: string;
+  member_count: number;
+  total_kills: number;
+  total_deaths: number;
+  kill_ratio: number;
+}
+
+export interface CorpRivalry {
+  corp_1: string;
+  corp_2: string;
+  kills_1_to_2: number;
+  kills_2_to_1: number;
+  total: number;
 }
 
 export const api = {
@@ -153,4 +170,6 @@ export const api = {
     fetchJson<{ window: string; hotzones: HotzoneData[] }>(`/hotzones?window=${window}`),
   streak: (id: string) => fetchJson<StreakData>(`/entity/${id}/streak`),
   hotStreaks: () => fetchJson<{ streaks: StreakData[] }>('/streaks'),
+  corps: () => fetchJson<{ corps: CorpData[] }>('/corps'),
+  corpRivalries: () => fetchJson<{ rivalries: CorpRivalry[] }>('/corps/rivalries'),
 };

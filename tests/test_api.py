@@ -339,6 +339,23 @@ def test_hot_streaks(client):
     assert "streaks" in r.json()
 
 
+def test_corps_leaderboard(client):
+    r = client.get("/api/corps")
+    assert r.status_code == 200
+    assert "corps" in r.json()
+
+
+def test_corp_rivalries(client):
+    r = client.get("/api/corps/rivalries")
+    assert r.status_code == 200
+    assert "rivalries" in r.json()
+
+
+def test_corp_not_found(client):
+    r = client.get("/api/corp/nonexistent")
+    assert r.status_code == 404
+
+
 def test_battle_report_no_events(client):
     r = client.post(
         "/api/battle-report",

@@ -153,6 +153,42 @@ def detect_title_changes(db) -> int:
     return count
 
 
+def detect_streak_milestones(db) -> int:
+    """Post stories when entities hit kill streak milestones."""
+    from backend.analysis.streaks import compute_streaks
+
+    milestones = [5, 10, 20, 50, 100]
+    entities = db.execute(
+        """SELECT entity_id, display_name FROM entities
+           WHERE entity_type = 'character' AND kill_count >= 5
+           ORDER BY kill_count DESC LIMIT 50"""
+    ).fetchall()
+
+    count = 0
+    for entity in entities:
+        info = compute_streaks(db, entity["entity_id"])
+        if info.current_streak <= 0:
+            continue
+
+        for m in milestones:
+            if info.current_streak >= m:
+                name = entity["display_name"] or entity["entity_id"][:12]
+                severity = "critical" if m >= 20 else "warning" if m >= 10 else "info"
+                headline = f"STREAK: {name} is on a {info.current_streak}-kill streak"
+                body = f"{info.kills_7d} kills in the last 7 days. Status: {info.status.upper()}."
+                _post_story(
+                    db,
+                    "streak",
+                    headline,
+                    body,
+                    [entity["entity_id"]],
+                    severity,
+                )
+                count += 1
+                break  # only post highest milestone
+    return count
+
+
 def generate_feed_items() -> int:
     """Run all detectors and generate new story feed items."""
     db = get_db()
@@ -161,6 +197,7 @@ def generate_feed_items() -> int:
     total += detect_new_entities(db)
     total += detect_gate_milestones(db)
     total += detect_title_changes(db)
+    total += detect_streak_milestones(db)
 
     if total > 0:
         db.commit()

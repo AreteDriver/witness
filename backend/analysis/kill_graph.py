@@ -9,6 +9,7 @@ import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass, field
 
+from backend.analysis.names import resolve_names
 from backend.core.logger import get_logger
 
 logger = get_logger("kill_graph")
@@ -124,21 +125,27 @@ def build_kill_graph(
         node_kills[e.attacker_id] += e.count
         node_deaths[e.victim_id] += e.count
 
-    # Fetch display names
+    # Batch-resolve display names
+    names = resolve_names(db, node_ids)
+
     nodes = []
     for nid in node_ids:
-        name_row = db.execute(
-            "SELECT display_name FROM entities WHERE entity_id = ?", (nid,)
-        ).fetchone()
-        name = name_row["display_name"] if name_row and name_row["display_name"] else nid[:12]
         nodes.append(
             KillGraphNode(
                 entity_id=nid,
-                display_name=name,
+                display_name=names.get(nid, nid[:12]),
                 kills_out=node_kills.get(nid, 0),
                 deaths_in=node_deaths.get(nid, 0),
             )
         )
+
+    # Add names to edges
+    edge_dicts = []
+    for e in edges:
+        d = e.to_dict()
+        d["attacker_name"] = names.get(e.attacker_id, e.attacker_id[:12])
+        d["victim_name"] = names.get(e.victim_id, e.victim_id[:12])
+        edge_dicts.append(d)
 
     # Detect vendettas: mutual kills
     vendettas = []
@@ -152,7 +159,9 @@ def build_kill_graph(
                 vendettas.append(
                     {
                         "entity_1": e.attacker_id,
+                        "entity_1_name": names.get(e.attacker_id, e.attacker_id[:12]),
                         "entity_2": e.victim_id,
+                        "entity_2_name": names.get(e.victim_id, e.victim_id[:12]),
                         "kills_1_to_2": e.count,
                         "kills_2_to_1": edge_counts[reverse],
                         "total": e.count + edge_counts[reverse],
@@ -163,7 +172,7 @@ def build_kill_graph(
 
     return {
         "nodes": [n.to_dict() for n in nodes],
-        "edges": [e.to_dict() for e in edges],
+        "edges": edge_dicts,
         "vendettas": vendettas[:10],
         "total_edges": len(edges),
         "total_nodes": len(nodes),

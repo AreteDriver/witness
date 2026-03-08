@@ -9,6 +9,7 @@ import sqlite3
 import time
 from dataclasses import dataclass
 
+from backend.analysis.names import resolve_names
 from backend.core.logger import get_logger
 
 logger = get_logger("streaks")
@@ -162,5 +163,15 @@ def get_hot_streaks(
 
     # Sort by current streak, then kills_7d
     streaks.sort(key=lambda s: (s.current_streak, s.kills_7d), reverse=True)
+    streaks = streaks[:limit]
 
-    return [s.to_dict() for s in streaks[:limit]]
+    # Resolve display names
+    ids = {s.entity_id for s in streaks}
+    names = resolve_names(db, ids)
+
+    result = []
+    for s in streaks:
+        d = s.to_dict()
+        d["display_name"] = names.get(s.entity_id, s.entity_id[:12])
+        result.append(d)
+    return result
