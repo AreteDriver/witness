@@ -1,0 +1,19 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.24"
+evm_version = "cancun"
+remappings = [
+  "@latticexyz/world/=node_modules/@latticexyz/world/",
+  "@latticexyz/store/=node_modules/@latticexyz/store/",
+  "@latticexyz/schema-type/=node_modules/@latticexyz/schema-type/",
+  "@eveworld/world/=node_modules/@eveworld/world/",
+  "@eveworld/common-constants/=node_modules/@eveworld/common-constants/",
+]
+
+[profile.garnet]
+eth_rpc_url = "${RPC_URL}"
+
+[profile.pyrope]
+eth_rpc_url = "${RPC_URL}"

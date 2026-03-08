@@ -1,0 +1,21 @@
+{
+  "name": "witness-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "mud build",
+    "deploy:local": "mud deploy",
+    "deploy:garnet": "mud deploy --profile=garnet",
+    "deploy:pyrope": "mud deploy --profile=pyrope"
+  },
+  "dependencies": {
+    "@latticexyz/world": "2.2.20",
+    "@latticexyz/schema-type": "2.2.20",
+    "@latticexyz/store": "2.2.20",
+    "@eveworld/world": "^0.0.17",
+    "@eveworld/common-constants": "^0.0.13"
+  },
+  "devDependencies": {
+    "@latticexyz/cli": "2.2.20"
+  }
+}

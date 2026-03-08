@@ -14,6 +14,9 @@ import { KillGraph } from './components/KillGraph';
 import { HotzoneMap } from './components/HotzoneMap';
 import { StreakTracker } from './components/StreakTracker';
 import { CorpIntel } from './components/CorpIntel';
+import { ReputationBadge } from './components/ReputationBadge';
+import { AssemblyMap } from './components/AssemblyMap';
+import { WalletConnect } from './components/WalletConnect';
 
 type Tab = 'intel' | 'tactical' | 'compare' | 'feed';
 
@@ -57,7 +60,10 @@ function App() {
               <span className="text-[var(--eve-dim)] text-sm ml-2">The Living Memory</span>
             </h1>
           </div>
-          <HealthBanner />
+          <div className="flex items-center gap-4">
+            <WalletConnect />
+            <HealthBanner />
+          </div>
         </div>
       </header>
 
@@ -105,7 +111,12 @@ function App() {
           <div className="space-y-6">
             {fingerprint && !loading && (
               <>
-                <FingerprintCard fp={fingerprint} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2">
+                    <FingerprintCard fp={fingerprint} />
+                  </div>
+                  <ReputationBadge entityId={selectedEntity} />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-4 space-y-4">
                     <ActivityHeatmap entityId={selectedEntity} />
@@ -138,6 +149,7 @@ function App() {
             <div className="space-y-6">
               <HotzoneMap />
               <StreakTracker entityId={selectedEntity || undefined} onSelect={loadEntity} />
+              <AssemblyMap />
             </div>
           </div>
         )}

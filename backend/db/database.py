@@ -122,6 +122,13 @@ CREATE TABLE IF NOT EXISTS story_feed (
     created_at INTEGER DEFAULT (unixepoch())
 );
 
+CREATE TABLE IF NOT EXISTS watcher_subscriptions (
+    wallet_address TEXT PRIMARY KEY,
+    tier INTEGER NOT NULL DEFAULT 0,
+    expires_at INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER DEFAULT (unixepoch())
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_killmails_timestamp ON killmails(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_killmails_system ON killmails(solar_system_id, timestamp DESC);

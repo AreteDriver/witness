@@ -6,6 +6,7 @@ import time
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
+from backend.analysis.assembly_tracker import get_assembly_stats, get_watcher_assemblies
 from backend.analysis.corp_intel import (
     detect_corp_rivalries,
     get_corp_leaderboard,
@@ -16,7 +17,9 @@ from backend.analysis.fingerprint import build_fingerprint, compare_fingerprints
 from backend.analysis.hotzones import get_hotzones, get_system_activity
 from backend.analysis.kill_graph import build_kill_graph
 from backend.analysis.narrative import generate_battle_report, generate_dossier_narrative
+from backend.analysis.reputation import compute_reputation
 from backend.analysis.streaks import compute_streaks, get_hot_streaks
+from backend.analysis.subscriptions import check_subscription, record_subscription
 from backend.db.database import get_db
 
 router = APIRouter()
@@ -329,6 +332,50 @@ async def get_corp(corp_id: str):
     if not profile:
         raise HTTPException(status_code=404, detail="Corporation not found")
     return profile.to_dict()
+
+
+@router.get("/entity/{entity_id}/reputation")
+async def get_entity_reputation(entity_id: str):
+    """Trust/reputation score for an entity. Designed for Smart Assembly gating."""
+    db = get_db()
+    rep = compute_reputation(db, entity_id)
+    return rep.to_dict()
+
+
+@router.get("/assemblies")
+async def get_assemblies():
+    """Live Watcher Smart Assembly locations — auto-updated from chain."""
+    db = get_db()
+    return get_assembly_stats(db)
+
+
+@router.get("/assemblies/list")
+async def list_assemblies():
+    """All Watcher assembly locations."""
+    db = get_db()
+    return {"assemblies": get_watcher_assemblies(db)}
+
+
+@router.get("/subscription/{wallet_address}")
+async def get_subscription(wallet_address: str):
+    """Check subscription status for a wallet address."""
+    db = get_db()
+    return check_subscription(db, wallet_address)
+
+
+class SubscribeRequest(BaseModel):
+    wallet_address: str
+    tier: int
+    duration: int = 604800  # 7 days default
+
+
+@router.post("/subscribe")
+async def subscribe(req: SubscribeRequest):
+    """Record a subscription (chain event handler / demo endpoint)."""
+    db = get_db()
+    if req.tier < 1 or req.tier > 3:
+        raise HTTPException(400, "Tier must be 1 (Scout), 2 (Oracle), or 3 (Spymaster)")
+    return record_subscription(db, req.wallet_address, req.tier, req.duration)
 
 
 class BattleReportRequest(BaseModel):

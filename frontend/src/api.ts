@@ -143,6 +143,55 @@ export interface CorpRivalry {
   total: number;
 }
 
+export interface ReputationData {
+  entity_id: string;
+  trust_score: number;
+  rating: string;
+  breakdown: {
+    combat_honor: number;
+    target_diversity: number;
+    reciprocity: number;
+    consistency: number;
+    community: number;
+    restraint: number;
+  };
+  stats: {
+    kills: number;
+    deaths: number;
+    unique_victims: number;
+    unique_attackers: number;
+    vendettas: number;
+  };
+  factors: string[];
+}
+
+export interface AssemblyData {
+  assembly_id: string;
+  type: string;
+  solar_system_id: string;
+  solar_system_name: string;
+  state: string;
+  position: { x: number; y: number; z: number };
+  deployed_at: number;
+}
+
+export interface AssemblyStats {
+  total: number;
+  online: number;
+  offline: number;
+  systems_covered: number;
+  by_type: Record<string, number>;
+  assemblies: AssemblyData[];
+}
+
+export interface SubscriptionData {
+  wallet: string;
+  tier: number;
+  tier_name: string;
+  expires_at: number;
+  active: boolean;
+}
+
 export const api = {
   health: () => fetchJson<{ status: string; tables: Record<string, number> }>('/health'),
   search: (q: string) => fetchJson<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`),
@@ -172,4 +221,7 @@ export const api = {
   hotStreaks: () => fetchJson<{ streaks: StreakData[] }>('/streaks'),
   corps: () => fetchJson<{ corps: CorpData[] }>('/corps'),
   corpRivalries: () => fetchJson<{ rivalries: CorpRivalry[] }>('/corps/rivalries'),
+  reputation: (id: string) => fetchJson<ReputationData>(`/entity/${id}/reputation`),
+  assemblies: () => fetchJson<AssemblyStats>('/assemblies'),
+  subscription: (wallet: string) => fetchJson<SubscriptionData>(`/subscription/${wallet}`),
 };

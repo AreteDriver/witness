@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Anthropic (for narrative generation)
     ANTHROPIC_API_KEY: str = ""
 
+    # Watcher Smart Assembly owner address (for assembly tracker)
+    WATCHER_OWNER_ADDRESS: str = ""
+
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000

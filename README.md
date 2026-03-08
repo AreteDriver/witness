@@ -1,15 +1,17 @@
 # Witness — The Living Memory of EVE Frontier
 
-> **Chain archaeology + AI intelligence + locator agent.**
-> Every gate transit, every killmail, every entity on-chain — cataloged, analyzed, named.
+> **Chain archaeology + AI intelligence + on-chain economy.**
+> Every gate transit, every killmail, every entity on-chain — cataloged, analyzed, scored, enforced.
+>
+> *Witness doesn't just watch — it remembers, and the chain listens.*
 
-**[Live Demo](https://witness-evefrontier.fly.dev)** | [API Docs](#api-endpoints) | [Discord Bot](#discord-bot)
+**[Live Demo](https://witness-evefrontier.fly.dev)** | [API Docs](#api-endpoints) | [Discord Bot](#discord-bot) | [Assembly Guide](docs/ASSEMBLY_GUIDE.md)
 
 ---
 
 ## What is Witness?
 
-Witness reads the EVE Frontier blockchain like a history book. It watches the World API, ingests every on-chain event, resolves entities, and generates intelligence — from deterministic earned titles to AI-written dossiers.
+Witness reads the EVE Frontier blockchain like a history book. It watches the World API, ingests every on-chain event, resolves entities, and generates intelligence — from deterministic earned titles to AI-written dossiers to on-chain reputation scores that gate Smart Assembly access.
 
 The chain never forgets. Neither does Witness.
 
@@ -20,7 +22,7 @@ The chain never forgets. Neither does Witness.
 - **190 killers** with confirmed kill counts (Asterix #1: 484 kills)
 - **170 earned titles** computed from on-chain stats
 - **224 story feed items** auto-generated from event patterns
-- **185 tests** passing, all lint clean
+- **238 tests** passing, all lint clean
 
 ---
 
@@ -35,17 +37,33 @@ The chain never forgets. Neither does Witness.
 - **Alt Detection** — Fingerprint comparison to identify likely alts and fleet mates
 - **AI Narratives** — Entity dossiers and battle reports generated from chain data
 
-### Tactical Intelligence (NEW)
+### Tactical Intelligence
 - **Kill Network** — Attacker→victim graph with vendetta detection (mutual kills between entities)
 - **Danger Zones** — Solar systems ranked by kill density with time window filtering (24h/7d/30d/all)
 - **Streak Tracker** — Kill streak tracking, momentum status (hot/active/cooling/dormant), active hunter board
 - **Corp Intel** — Corporation combat rankings, member aggregation, inter-corp rivalry detection
+
+### Reputation System (NEW)
+- **On-Chain Trust Scoring** — Every entity scored 0-100 across 6 dimensions:
+  - **Combat Honor** — Clean kills vs ganking behavior
+  - **Target Diversity** — Range of opponents (not farming the same pilot)
+  - **Reciprocity** — Fair fights vs one-sided engagements
+  - **Consistency** — Stable behavior over time (not erratic)
+  - **Community** — Gate construction, assembly deployment, positive-sum actions
+  - **Restraint** — Avoidance of excessive force, new player protection
+- **Smart Assembly Gating** — Reputation scores flow back on-chain. Deployers can set thresholds: "deny docking if trust < 40"
+- **Designed for Smart Contracts** — Scores structured for direct consumption by WatcherSystem.sol
 
 ### The Oracle (Intelligence Layer)
 - **Standing Watches** — Monitor entities, gates, systems with Discord/webhook alerts
 - **Movement Detection** — Know when a target transits any gate
 - **Traffic Spike Alerts** — Unusual gate activity notifications
 - **Killmail Proximity** — Instant notification when ships die in monitored systems
+
+### On-Chain Economy
+- **Smart Contract Subscriptions** — [WatcherSystem.sol](#smart-contract) (MUD v2 Solidity) manages three paid tiers via on-chain item transfer
+- **Watcher Assembly Network** — Live tracker of deployed "The Watcher" Smart Assemblies across the frontier. Auto-updates from chain data. Shows online/offline status, system coverage, fleet health
+- **Tier-Gated Access** — Backend verifies on-chain subscription status (5-min cache) and gates endpoints by tier
 
 ---
 
@@ -62,20 +80,45 @@ World API (30s polling) → Poller → SQLite WAL
       Fingerprint  Earned            Auto-      Network    Danger
        Builder     Titles            News      Analysis    Zones
             ↓          ↓               ↓           ↓          ↓
-            └──────────┴───────────────┼───────────┴──────────┘
-                                       ↓
-                                  FastAPI API (22 endpoints)
-                                       ↓
-                         ┌─────────────┼──────────┐
-                         ↓             ↓          ↓
-                    React SPA      Discord    Webhooks
-                    (4 views)        Bot
+            └──────────┴───────────┬───┼───────────┴──────────┘
+                                   ↓   ↓
+                             Reputation Engine
+                            (6-dimension scoring)
+                                   ↓
+                              FastAPI API (28 endpoints)
+                                   ↓
+                         ┌─────────┼──────────┬──────────────┐
+                         ↓         ↓          ↓              ↓
+                    React SPA   Discord    Webhooks    WatcherSystem.sol
+                    (4 tabs,      Bot                  (MUD v2 contract)
+                   12 components)                            ↓
+                                                   Smart Assembly gating
+                                                  ("deny dock if trust < 40")
+                                                             ↓
+                                                    ← back on-chain →
 ```
+
+**The loop**: Data flows in from the chain → Witness analyzes and scores → reputation scores flow back on-chain via WatcherSystem.sol → Smart Assemblies enforce access based on trust → player behavior changes → new chain data flows in.
+
+### Smart Contract
+
+**WatcherSystem.sol** — MUD v2 Solidity contract deployed on-chain.
+
+Three subscription tiers, paid via Smart Assembly inventory transfer (in-game items):
+
+| Tier | Duration | Includes |
+|---|---|---|
+| **Scout** | 7 days | Behavioral fingerprints, reputation scores |
+| **Oracle** | 7 days | + AI narratives, standing watches, locator agent |
+| **Spymaster** | 7 days | + Alt detection, kill networks, battle reports |
+
+Subscription status is verified on-chain. The backend checks wallet subscription state with a 5-minute cache and gates endpoint access by tier.
 
 ### Tech Stack
 - **Backend**: Python 3.12, FastAPI, SQLite WAL
-- **Frontend**: React 19, Vite 7, Tailwind CSS 4, TypeScript
+- **Frontend**: React 19, Vite 7, Tailwind CSS 4, TypeScript (4 tabs, 12 components)
 - **Intelligence**: Anthropic API (Claude) for narrative generation
+- **On-Chain**: MUD v2, Solidity (WatcherSystem.sol)
 - **Bot**: discord.py with slash commands
 - **Deployment**: Docker, Fly.io
 - **Ingestion**: Never-crash poller with pagination, error isolation
@@ -86,6 +129,7 @@ World API (30s polling) → Poller → SQLite WAL
 3. **Deterministic titles** — same data = same names, everyone sees the same thing
 4. **Cache AI narratives** — same entity + same events = cached response
 5. **Template fallback** — narratives work without API key via rule-based generation
+6. **The chain loop** — data in → analysis → reputation → on-chain enforcement → behavioral change → new data
 
 ---
 
@@ -118,7 +162,7 @@ docker compose up -d
 
 ## API Endpoints
 
-All endpoints under `/api/` prefix.
+All endpoints under `/api/` prefix. 28 endpoints total.
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -128,6 +172,7 @@ All endpoints under `/api/` prefix.
 | `/api/entity/{id}/fingerprint` | GET | Behavioral fingerprint (temporal, route, social, threat, OPSEC) |
 | `/api/entity/{id}/timeline` | GET | Unified event timeline with delta analysis |
 | `/api/entity/{id}/narrative` | GET | AI-generated or template dossier narrative |
+| `/api/entity/{id}/reputation` | GET | Trust score (0-100) with 6-dimension breakdown |
 | `/api/feed` | GET | Story feed (auto-generated news) |
 | `/api/leaderboard/{category}` | GET | Rankings: `top_killers`, `most_deaths`, `most_traveled`, `deadliest_gates`, `most_active_gates` |
 | `/api/titles` | GET | Entities with earned titles |
@@ -144,6 +189,10 @@ All endpoints under `/api/` prefix.
 | `/api/battle-report` | POST | AI battle analysis from event sequence |
 | `/api/watches` | POST | Create standing intelligence watch |
 | `/api/watches/{id}` | DELETE | Remove watch |
+| `/api/subscription/{wallet}` | GET | Check on-chain subscription status and tier |
+| `/api/subscribe` | POST | Initiate subscription (triggers on-chain verification) |
+| `/api/assemblies` | GET | Watcher Assembly Network summary (coverage, fleet health) |
+| `/api/assemblies/list` | GET | List deployed Watcher assemblies with online/offline status |
 
 ---
 
@@ -165,9 +214,9 @@ Set `WITNESS_DISCORD_TOKEN` to activate.
 
 ## Dashboard
 
-React SPA with four views:
+React SPA with four tabs and 12 components:
 
-- **Intelligence** — Search any entity, view fingerprint card (temporal/route/social/threat profiles), activity heatmap, event timeline, AI narrative
+- **Intelligence** — Search any entity, view fingerprint card (temporal/route/social/threat profiles), activity heatmap, event timeline, AI narrative, reputation score
 - **Tactical** — Kill network graph, danger zone heatmap, active hunter streaks, corp combat rankings
 - **Compare** — Side-by-side fingerprint comparison with alt/fleet-mate detection
 - **Feed & Rankings** — Live story feed + leaderboard with category switching
@@ -203,7 +252,7 @@ Deterministic titles computed from on-chain stats. Same data = same title for ev
 ## Development
 
 ```bash
-# Test (185 passing)
+# Test (238 passing)
 pytest tests/ -v
 
 # Lint
@@ -234,9 +283,9 @@ Built for the **EVE Frontier Hackathon** (March 2026).
 
 **Category**: Community Tools / Intelligence
 
-**Why Witness?** EVE Frontier generates permanent on-chain data but no tools exist to make sense of it. Witness turns raw blockchain events into actionable intelligence — who's dangerous, which gates are contested, when new players appear, and whether that pilot is an alt.
+**Why Witness?** EVE Frontier generates permanent on-chain data but no tools exist to make sense of it. Witness turns raw blockchain events into actionable intelligence — who's dangerous, which gates are contested, when new players appear, and whether that pilot is an alt. With the reputation system and WatcherSystem.sol, intelligence flows back on-chain to enforce community standards through Smart Assembly access control.
 
-The chain is the source of truth. Witness is the interpreter.
+The chain is the source of truth. Witness is the interpreter. And now, the enforcer.
 
 ---
 

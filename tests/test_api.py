@@ -356,6 +356,68 @@ def test_corp_not_found(client):
     assert r.status_code == 404
 
 
+def test_entity_reputation(client):
+    r = client.get("/api/entity/char-001/reputation")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["entity_id"] == "char-001"
+    assert "trust_score" in data
+    assert "rating" in data
+    assert "breakdown" in data
+    assert "factors" in data
+    assert 0 <= data["trust_score"] <= 100
+
+
+def test_assemblies(client):
+    r = client.get("/api/assemblies")
+    assert r.status_code == 200
+    data = r.json()
+    assert "total" in data
+    assert "online" in data
+    assert "systems_covered" in data
+
+
+def test_assemblies_list(client):
+    r = client.get("/api/assemblies/list")
+    assert r.status_code == 200
+    assert "assemblies" in r.json()
+
+
+def test_subscription_not_found(client):
+    r = client.get("/api/subscription/0xNobody")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["tier"] == 0
+    assert data["active"] is False
+
+
+def test_subscribe(client):
+    r = client.post(
+        "/api/subscribe",
+        json={"wallet_address": "0xTest", "tier": 2},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["tier"] == 2
+    assert data["active"] is True
+
+
+def test_subscribe_invalid_tier(client):
+    r = client.post(
+        "/api/subscribe",
+        json={"wallet_address": "0xTest", "tier": 5},
+    )
+    assert r.status_code == 400
+
+
+def test_entity_reputation_not_found(client):
+    r = client.get("/api/entity/nonexistent/reputation")
+    assert r.status_code == 200  # Returns default neutral score
+    data = r.json()
+    assert data["trust_score"] == 50
+    assert data["rating"] == "neutral"
+
+
 def test_battle_report_no_events(client):
     r = client.post(
         "/api/battle-report",
