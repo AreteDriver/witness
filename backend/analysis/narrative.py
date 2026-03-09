@@ -229,8 +229,9 @@ def generate_dossier_narrative(entity_id: str) -> str:
         _store_cache(db, entity_id, "dossier", eh, content)
         logger.info("Generated dossier for %s", entity_id)
         return content
-    except ValueError as e:
-        return f"Narrative unavailable: {e}"
+    except ValueError:
+        logger.exception("Narrative generation error")
+        return "Narrative temporarily unavailable."
     except Exception as e:
         logger.error("Narrative generation failed: %s", e)
         return _template_narrative(profile_data)
@@ -292,8 +293,9 @@ def generate_battle_report(events: list[dict]) -> dict:
         _store_cache(db, cache_key, "battle", eh, json.dumps(report))
         logger.info("Generated battle report (%d events)", len(events))
         return report
-    except ValueError as e:
-        return {"error": str(e)}
+    except ValueError:
+        logger.exception("Battle report generation error")
+        return {"error": "Battle report generation temporarily unavailable."}
     except Exception as e:
         logger.error("Battle report generation failed: %s", e)
         return {"error": "Battle report generation temporarily unavailable."}

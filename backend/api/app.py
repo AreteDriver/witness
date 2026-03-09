@@ -120,7 +120,7 @@ if FRONTEND_DIR.exists():
         index = str(FRONTEND_DIR / "index.html")
         # Sanitize: resolve then enforce boundary
         safe_path = (FRONTEND_DIR / path).resolve()
-        if not str(safe_path).startswith(str(FRONTEND_DIR)):
+        if not safe_path.is_relative_to(FRONTEND_DIR):
             return FileResponse(index)
         if safe_path.exists() and safe_path.is_file():
             return FileResponse(str(safe_path))
