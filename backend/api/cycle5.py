@@ -4,6 +4,7 @@ import time
 
 from fastapi import APIRouter, Query
 
+from backend.analysis.c5_analysis import analyze_zone_threat, get_c5_briefing
 from backend.core.logger import get_logger
 from backend.db.database import get_db
 
@@ -286,3 +287,21 @@ async def crown_roster(corp_id: str | None = None):
             "uncrowned": max(0, total_characters - crowned_count),
         }
     )
+
+
+@router.get("/orbital-zones/{zone_id}/threat")
+async def zone_threat_analysis(zone_id: str):
+    """Threat intelligence summary for a single zone."""
+    db = get_db()
+    summary = analyze_zone_threat(db, zone_id)
+    if not summary:
+        return _cycle_envelope(None)
+    return _cycle_envelope(summary.to_dict())
+
+
+@router.get("/briefing")
+async def c5_briefing():
+    """Full Cycle 5 situation briefing — threat, scan, clone, crown analysis."""
+    db = get_db()
+    briefing = get_c5_briefing(db)
+    return _cycle_envelope(briefing.to_dict())
