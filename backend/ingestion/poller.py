@@ -580,12 +580,104 @@ async def _poll_c5_endpoints(client: httpx.AsyncClient) -> None:
             pass
 
 
+def _detect_universe_reset(db) -> bool:
+    """Detect if universe has reset by checking for killmails newer than reset epoch.
+
+    If the API returns killmails with timestamps *before* our latest ingested
+    killmail, the universe likely reset (all old data is stale).
+    Returns True if reset detected (pre-cycle data should be archived).
+    """
+    try:
+        from backend.api.cycle5 import CYCLE_RESET_EPOCH
+
+        row = db.execute(
+            "SELECT MAX(timestamp) as latest FROM killmails WHERE cycle = 5"
+        ).fetchone()
+        if not row or not row["latest"]:
+            return False  # No data yet — nothing to reset
+
+        # If we have data from before the reset epoch, mark it
+        pre_reset = db.execute(
+            "SELECT COUNT(*) as cnt FROM killmails WHERE cycle = 5 AND timestamp < ?",
+            (CYCLE_RESET_EPOCH,),
+        ).fetchone()
+        if pre_reset and pre_reset["cnt"] > 0:
+            logger.warning(
+                "Universe reset detected — %d pre-cycle killmails found",
+                pre_reset["cnt"],
+            )
+            return True
+        return False
+    except Exception as e:
+        logger.error("Reset detection failed: %s", e)
+        return False
+
+
+def _archive_pre_cycle_data(db) -> None:
+    """Mark pre-cycle data as cycle 4 to isolate from Cycle 5 queries.
+
+    Does NOT delete — archives by reassigning the cycle field.
+    """
+    from backend.api.cycle5 import CYCLE_RESET_EPOCH
+
+    tables_with_timestamps = [
+        ("killmails", "timestamp"),
+        ("gate_events", "timestamp"),
+    ]
+    for table, ts_col in tables_with_timestamps:
+        try:
+            result = db.execute(
+                f"UPDATE {table} SET cycle = 4 WHERE cycle = 5 AND {ts_col} < ?",  # noqa: S608
+                (CYCLE_RESET_EPOCH,),
+            )
+            if result.rowcount > 0:
+                logger.info(
+                    "Archived %d pre-cycle rows from %s",
+                    result.rowcount,
+                    table,
+                )
+        except Exception as e:
+            logger.error("Archive %s failed: %s", table, e)
+
+    # C5 tables: clear all (they're cycle-specific, no pre-cycle data expected)
+    c5_tables = [
+        "orbital_zones",
+        "feral_ai_events",
+        "scans",
+        "scan_intel",
+        "clones",
+        "clone_blueprints",
+        "crowns",
+    ]
+    for table in c5_tables:
+        try:
+            result = db.execute(f"DELETE FROM {table} WHERE cycle < 5")  # noqa: S608
+            if result.rowcount > 0:
+                logger.info("Cleared %d stale rows from %s", result.rowcount, table)
+        except Exception as e:
+            logger.error("Clear %s failed: %s", table, e)
+
+    db.commit()
+    logger.info("Pre-cycle data archived to cycle 4")
+
+
 async def run_poller() -> None:
     """Main ingestion loop. Runs forever. Never raises."""
     logger.info("Poller starting — base: %s", settings.WORLD_API_BASE)
     cycle_counter = 0
+    reset_checked = False
     async with httpx.AsyncClient() as client:
         while True:
+            # One-time reset detection on first poll
+            if not reset_checked:
+                try:
+                    db = get_db()
+                    if _detect_universe_reset(db):
+                        _archive_pre_cycle_data(db)
+                except Exception as e:
+                    logger.error("Reset check failed (continuing): %s", e)
+                reset_checked = True
+
             try:
                 # Poll all endpoints in parallel
                 kill_task = poll_endpoint(client, "v2/killmails")

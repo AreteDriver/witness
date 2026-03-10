@@ -13,6 +13,8 @@ from httpx import Response
 
 from backend.db.database import SCHEMA
 from backend.ingestion.poller import (
+    _archive_pre_cycle_data,
+    _detect_universe_reset,
     _ingest_gate_events,
     _ingest_killmails,
     _ingest_smart_assemblies,
@@ -820,3 +822,93 @@ def test_ingest_subscriptions_no_wallet():
     ]
     count = _ingest_subscriptions(db, assemblies)
     assert count == 0
+
+
+# =========================================================================
+# Universe Reset Detection
+# =========================================================================
+
+
+def test_detect_reset_no_data():
+    """No data = no reset detected."""
+    db = _get_test_db()
+    assert _detect_universe_reset(db) is False
+
+
+def test_detect_reset_with_pre_cycle_data():
+    """Pre-cycle killmails trigger reset detection."""
+    db = _get_test_db()
+    # Insert a killmail from before the reset epoch
+    db.execute(
+        """INSERT INTO killmails (killmail_id, timestamp, cycle)
+           VALUES ('old-kill-1', 1741000000, 5)"""
+    )
+    db.commit()
+    assert _detect_universe_reset(db) is True
+
+
+def test_detect_reset_all_post_cycle():
+    """Post-cycle data only = no reset detected."""
+    db = _get_test_db()
+    db.execute(
+        """INSERT INTO killmails (killmail_id, timestamp, cycle)
+           VALUES ('new-kill-1', 1741700000, 5)"""
+    )
+    db.commit()
+    assert _detect_universe_reset(db) is False
+
+
+def test_archive_pre_cycle_data():
+    """Pre-cycle killmails get moved to cycle 4."""
+    db = _get_test_db()
+    # Insert one old and one new killmail
+    db.execute(
+        """INSERT INTO killmails (killmail_id, timestamp, cycle)
+           VALUES ('old-1', 1741000000, 5)"""
+    )
+    db.execute(
+        """INSERT INTO killmails (killmail_id, timestamp, cycle)
+           VALUES ('new-1', 1741700000, 5)"""
+    )
+    db.commit()
+
+    _archive_pre_cycle_data(db)
+
+    # Old one should be cycle 4
+    old = db.execute("SELECT cycle FROM killmails WHERE killmail_id = 'old-1'").fetchone()
+    assert old["cycle"] == 4
+
+    # New one should still be cycle 5
+    new = db.execute("SELECT cycle FROM killmails WHERE killmail_id = 'new-1'").fetchone()
+    assert new["cycle"] == 5
+
+
+def test_archive_clears_c5_stale_tables():
+    """C5-specific tables get stale rows cleared."""
+    db = _get_test_db()
+    # Insert a stale orbital zone from cycle 4
+    db.execute(
+        """INSERT INTO orbital_zones (zone_id, name, cycle)
+           VALUES ('zone-1', 'Test Zone', 4)"""
+    )
+    db.commit()
+
+    _archive_pre_cycle_data(db)
+
+    row = db.execute("SELECT COUNT(*) as cnt FROM orbital_zones").fetchone()
+    assert row["cnt"] == 0
+
+
+def test_archive_preserves_c5_data():
+    """Current cycle C5 data is untouched."""
+    db = _get_test_db()
+    db.execute(
+        """INSERT INTO orbital_zones (zone_id, name, cycle)
+           VALUES ('zone-1', 'Test Zone', 5)"""
+    )
+    db.commit()
+
+    _archive_pre_cycle_data(db)
+
+    row = db.execute("SELECT COUNT(*) as cnt FROM orbital_zones").fetchone()
+    assert row["cnt"] == 1
