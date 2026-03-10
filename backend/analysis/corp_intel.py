@@ -26,10 +26,14 @@ class CorpProfile:
     systems: list[str] = field(default_factory=list)
     top_killers: list[dict] = field(default_factory=list)
     threat_level: str = "unknown"
+    tribe_name: str | None = None
+    tribe_short: str | None = None
 
     def to_dict(self) -> dict:
         return {
             "corp_id": self.corp_id,
+            "tribe_name": self.tribe_name,
+            "tribe_short": self.tribe_short,
             "member_count": self.member_count,
             "active_members": self.active_members,
             "total_kills": self.total_kills,
@@ -54,6 +58,18 @@ def get_corp_profile(db: sqlite3.Connection, corp_id: str) -> CorpProfile | None
         return None
 
     profile = CorpProfile(corp_id=corp_id)
+
+    # Enrich with tribe name
+    try:
+        tribe_row = db.execute(
+            "SELECT name, name_short FROM tribes WHERE tribe_id = ?",
+            (int(corp_id),),
+        ).fetchone()
+        if tribe_row:
+            profile.tribe_name = tribe_row["name"]
+            profile.tribe_short = tribe_row["name_short"]
+    except (ValueError, TypeError):
+        pass  # corp_id not a valid tribe_id
     profile.member_count = len(members)
 
     for m in members:
@@ -128,15 +144,26 @@ def get_corp_leaderboard(
         kills = c["total_kills"] or 0
         deaths = c["total_deaths"] or 0
         total = kills + deaths
-        results.append(
-            {
-                "corp_id": c["corp_id"],
-                "member_count": c["member_count"],
-                "total_kills": kills,
-                "total_deaths": deaths,
-                "kill_ratio": round(kills / total, 2) if total > 0 else 0.0,
-            }
-        )
+        entry = {
+            "corp_id": c["corp_id"],
+            "tribe_name": None,
+            "tribe_short": None,
+            "member_count": c["member_count"],
+            "total_kills": kills,
+            "total_deaths": deaths,
+            "kill_ratio": round(kills / total, 2) if total > 0 else 0.0,
+        }
+        try:
+            tribe_row = db.execute(
+                "SELECT name, name_short FROM tribes WHERE tribe_id = ?",
+                (int(c["corp_id"]),),
+            ).fetchone()
+            if tribe_row:
+                entry["tribe_name"] = tribe_row["name"]
+                entry["tribe_short"] = tribe_row["name_short"]
+        except (ValueError, TypeError):
+            pass
+        results.append(entry)
 
     return results
 

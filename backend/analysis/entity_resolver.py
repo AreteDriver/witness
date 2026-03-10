@@ -34,6 +34,11 @@ class EntityDossier:
     associated_characters: list[str] = field(default_factory=list)
     titles: list[str] = field(default_factory=list)
 
+    # Enriched from reference data
+    tribe_name: str | None = None
+    tribe_short: str | None = None
+    character_id: str | None = None
+
     def to_dict(self) -> dict:
         return {
             "entity_id": self.entity_id,
@@ -54,6 +59,9 @@ class EntityDossier:
             "associated_corps": self.associated_corps,
             "associated_characters": self.associated_characters,
             "titles": self.titles,
+            "tribe_name": self.tribe_name,
+            "tribe_short": self.tribe_short,
+            "character_id": self.character_id,
         }
 
 
@@ -148,6 +156,43 @@ def _enrich_gate(db: sqlite3.Connection, dossier: EntityDossier) -> None:
 def _enrich_character(db: sqlite3.Connection, dossier: EntityDossier) -> None:
     """Add character-specific stats."""
     char_id = dossier.entity_id
+
+    # Enrich from smart_characters (name, tribe, character_id)
+    sc_row = db.execute(
+        "SELECT name, character_id, tribe_id FROM smart_characters WHERE address = ?",
+        (char_id,),
+    ).fetchone()
+    if sc_row:
+        # Overwrite if display_name is empty or just a truncated address
+        if sc_row["name"] and (
+            not dossier.display_name
+            or dossier.display_name == dossier.entity_id[:12]
+        ):
+            dossier.display_name = sc_row["name"]
+        dossier.character_id = sc_row["character_id"]
+        tribe_id = sc_row["tribe_id"]
+        if tribe_id:
+            dossier.corp_id = str(tribe_id)
+            tribe_row = db.execute(
+                "SELECT name, name_short FROM tribes WHERE tribe_id = ?",
+                (int(tribe_id),),
+            ).fetchone()
+            if tribe_row:
+                dossier.tribe_name = tribe_row["name"]
+                dossier.tribe_short = tribe_row["name_short"]
+
+    # Tribe lookup from corp_id if not already resolved
+    if dossier.corp_id and not dossier.tribe_name:
+        try:
+            tribe_row = db.execute(
+                "SELECT name, name_short FROM tribes WHERE tribe_id = ?",
+                (int(dossier.corp_id),),
+            ).fetchone()
+            if tribe_row:
+                dossier.tribe_name = tribe_row["name"]
+                dossier.tribe_short = tribe_row["name_short"]
+        except (ValueError, TypeError):
+            pass  # corp_id not a valid tribe_id
 
     # Gates used
     gates = db.execute(

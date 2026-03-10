@@ -16,6 +16,7 @@ from backend.ingestion.poller import (
     _archive_pre_cycle_data,
     _detect_universe_reset,
     _enrich_entities_from_characters,
+    _fetch_tribe_details,
     _ingest_gate_events,
     _ingest_killmails,
     _ingest_smart_assemblies,
@@ -1038,3 +1039,85 @@ def test_enrich_entities_no_match():
     db.commit()
     entity = db.execute("SELECT display_name FROM entities WHERE entity_id = '0xabc'").fetchone()
     assert entity["display_name"] == "Already Named"
+
+
+def test_enrich_entities_sets_corp_id():
+    """Entity corp_id updated from smart_characters tribe_id."""
+    db = _get_test_db()
+    db.execute(
+        """INSERT INTO entities (entity_id, entity_type, display_name)
+           VALUES ('0xabc', 'character', 'Pilot')"""
+    )
+    db.execute(
+        """INSERT INTO smart_characters (address, name, character_id, tribe_id)
+           VALUES ('0xabc', 'Pilot', '123', '98000361')"""
+    )
+    db.commit()
+    _enrich_entities_from_characters(db)
+    db.commit()
+    entity = db.execute("SELECT corp_id FROM entities WHERE entity_id = '0xabc'").fetchone()
+    assert entity["corp_id"] == "98000361"
+
+
+def test_ingest_tribes_links_members():
+    """Tribe detail with members updates smart_characters tribe_id."""
+    db = _get_test_db()
+    db.execute(
+        """INSERT INTO smart_characters (address, name, character_id)
+           VALUES ('0xabc', 'Pilot', '123')"""
+    )
+    db.commit()
+    raw = [
+        {
+            "id": 98000361,
+            "name": "The Saints",
+            "nameShort": "SAINT",
+            "memberCount": 1,
+            "members": [
+                {"address": "0xabc", "name": "Pilot", "id": "123"},
+            ],
+        }
+    ]
+    _ingest_tribes(db, raw)
+    db.commit()
+    row = db.execute("SELECT tribe_id FROM smart_characters WHERE address = '0xabc'").fetchone()
+    assert row["tribe_id"] == "98000361"
+
+
+@respx.mock
+async def test_fetch_tribe_details():
+    """Fetches individual tribe detail endpoints."""
+    respx.get("http://test/v2/tribes/1").mock(
+        return_value=Response(
+            200,
+            json={
+                "id": 1,
+                "name": "Test Tribe",
+                "members": [{"address": "0xabc"}],
+            },
+        )
+    )
+    async with httpx.AsyncClient() as client:
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(
+                "backend.ingestion.poller.settings",
+                _mock_settings(),
+            )
+            details = await _fetch_tribe_details(client, [{"id": 1}])
+    assert len(details) == 1
+    assert details[0]["name"] == "Test Tribe"
+    assert len(details[0]["members"]) == 1
+
+
+@respx.mock
+async def test_fetch_tribe_details_handles_error():
+    """404 on tribe detail doesn't crash."""
+    respx.get("http://test/v2/tribes/999").mock(return_value=Response(404))
+    async with httpx.AsyncClient() as client:
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(
+                "backend.ingestion.poller.settings",
+                _mock_settings(),
+            )
+            details = await _fetch_tribe_details(client, [{"id": 999}])
+    assert details == []

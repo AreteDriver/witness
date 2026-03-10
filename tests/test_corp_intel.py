@@ -157,4 +157,53 @@ def test_to_dict(db):
     assert "member_count" in d
     assert "kill_ratio" in d
     assert "threat_level" in d
+    assert "tribe_name" in d
+    assert "tribe_short" in d
     assert isinstance(d["kill_ratio"], float)
+
+
+def test_corp_profile_with_tribe(db):
+    """Corp profile enriched with tribe name."""
+    db.execute(
+        "INSERT INTO tribes (tribe_id, name, name_short) VALUES (98000361, 'The Saints', 'SAINT')"
+    )
+    # Add a member with tribe corp_id
+    db.execute(
+        "INSERT INTO entities (entity_id, entity_type, display_name,"
+        " corp_id, kill_count, death_count)"
+        " VALUES ('s1', 'character', 'Saint1', '98000361', 5, 1)"
+    )
+    db.commit()
+    profile = get_corp_profile(db, "98000361")
+    assert profile is not None
+    assert profile.tribe_name == "The Saints"
+    assert profile.tribe_short == "SAINT"
+    d = profile.to_dict()
+    assert d["tribe_name"] == "The Saints"
+
+
+def test_corp_leaderboard_includes_tribe(db):
+    """Leaderboard entries include tribe name."""
+    db.execute(
+        "INSERT INTO tribes (tribe_id, name, name_short) VALUES (98000361, 'The Saints', 'SAINT')"
+    )
+    db.execute(
+        "INSERT INTO entities (entity_id, entity_type, display_name,"
+        " corp_id, kill_count, death_count)"
+        " VALUES ('s1', 'character', 'Saint1', '98000361', 20, 1)"
+    )
+    db.commit()
+    lb = get_corp_leaderboard(db)
+    tribe_entries = [e for e in lb if e["corp_id"] == "98000361"]
+    assert len(tribe_entries) == 1
+    assert tribe_entries[0]["tribe_name"] == "The Saints"
+    assert tribe_entries[0]["tribe_short"] == "SAINT"
+
+
+def test_corp_leaderboard_no_tribe(db):
+    """Leaderboard entries without tribe have None."""
+    lb = get_corp_leaderboard(db)
+    for entry in lb:
+        if entry["corp_id"] == "corp-A":
+            assert entry["tribe_name"] is None
+            assert entry["tribe_short"] is None

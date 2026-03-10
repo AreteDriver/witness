@@ -562,7 +562,7 @@ def _ingest_smart_characters(db, characters: list[dict]) -> int:
 
 
 def _ingest_tribes(db, tribes: list[dict]) -> int:
-    """Ingest tribe (corp) data."""
+    """Ingest tribe (corp) data and member→tribe associations."""
     count = 0
     for raw in tribes:
         tribe_id = raw.get("id")
@@ -596,14 +596,50 @@ def _ingest_tribes(db, tribes: list[dict]) -> int:
             )
             if cursor.rowcount > 0:
                 count += 1
+
+            # Link members to tribe in smart_characters
+            members = raw.get("members", [])
+            for member in members:
+                addr = member.get("address")
+                if not addr:
+                    continue
+                db.execute(
+                    """UPDATE smart_characters
+                       SET tribe_id = ?
+                       WHERE address = ?""",
+                    (str(tribe_id), str(addr)),
+                )
         except Exception as e:
             logger.error("Tribe ingest error: %s", e)
     return count
 
 
+async def _fetch_tribe_details(
+    client: httpx.AsyncClient,
+    tribes: list[dict],
+) -> list[dict]:
+    """Fetch individual tribe details to get member lists."""
+    details = []
+    for tribe in tribes:
+        tribe_id = tribe.get("id")
+        if not tribe_id:
+            continue
+        try:
+            url = f"{settings.WORLD_API_BASE}/v2/tribes/{tribe_id}"
+            r = await client.get(url, timeout=settings.POLL_TIMEOUT_SECONDS)
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, dict):
+                details.append(data)
+        except Exception as e:
+            logger.warning("Tribe detail %s: %s", tribe_id, e)
+    return details
+
+
 def _enrich_entities_from_characters(db) -> None:
-    """Update entity display names from smart_characters table."""
+    """Update entity display names and corp_id from smart_characters."""
     try:
+        # Update display names
         db.execute("""
             UPDATE entities SET
                 display_name = (
@@ -618,6 +654,27 @@ def _enrich_entities_from_characters(db) -> None:
                 WHERE sc.address = entities.entity_id
                 AND sc.name != ''
                 AND sc.name != entities.display_name
+            )
+        """)
+
+        # Update corp_id from tribe_id
+        db.execute("""
+            UPDATE entities SET
+                corp_id = (
+                    SELECT sc.tribe_id FROM smart_characters sc
+                    WHERE sc.address = entities.entity_id
+                    AND sc.tribe_id IS NOT NULL
+                    AND sc.tribe_id != ''
+                ),
+                updated_at = unixepoch()
+            WHERE entity_type = 'character'
+            AND EXISTS (
+                SELECT 1 FROM smart_characters sc
+                WHERE sc.address = entities.entity_id
+                AND sc.tribe_id IS NOT NULL
+                AND sc.tribe_id != ''
+                AND (entities.corp_id IS NULL
+                     OR entities.corp_id != sc.tribe_id)
             )
         """)
     except Exception as e:
@@ -831,11 +888,17 @@ async def run_poller() -> None:
                         ref_db = get_db()
                         new_chars = _ingest_smart_characters(ref_db, raw_chars)
                         new_tribes = _ingest_tribes(ref_db, raw_tribes)
+
+                        # Fetch tribe details for member→tribe links
+                        detail_tribes = await _fetch_tribe_details(client, raw_tribes)
+                        if detail_tribes:
+                            _ingest_tribes(ref_db, detail_tribes)
+
                         if new_chars or new_tribes:
                             _enrich_entities_from_characters(ref_db)
                             ref_db.commit()
                             logger.info(
-                                "Reference data: %d characters, %d tribes",
+                                "Reference data: %d chars, %d tribes",
                                 new_chars,
                                 new_tribes,
                             )
