@@ -2,8 +2,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY pyproject.toml requirements.lock ./
-RUN pip install --no-cache-dir -r requirements.lock
+COPY pyproject.toml requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ backend/
 COPY scripts/ scripts/

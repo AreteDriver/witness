@@ -22,7 +22,7 @@ The chain never forgets. Neither does Witness.
 - **190 killers** with confirmed kill counts (Asterix #1: 484 kills)
 - **170 earned titles** computed from on-chain stats
 - **224 story feed items** auto-generated from event patterns
-- **383 tests** passing (80%+ coverage), all lint clean
+- **398 tests** passing (80%+ coverage), all lint clean
 
 ---
 
@@ -272,7 +272,7 @@ Deterministic titles computed from on-chain stats. Same data = same title for ev
 ## Development
 
 ```bash
-# Backend tests (383 passing, 80%+ coverage)
+# Backend tests (398 passing, 80%+ coverage)
 pytest tests/ -v
 
 # Frontend tests (45 passing)
