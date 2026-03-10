@@ -215,11 +215,11 @@ World API (polling) → Poller → SQLite → Entity Resolver → Naming Engine
 New systems: orbital zones + feral AI, void scanning, clone manufacturing, crowns/identity.
 All new endpoints must return `{ cycle: 5, reset_at: "...", data: [...] }` envelope.
 
-### New Tables (7)
-orbital_zones, feral_ai_events, scans, scan_intel, clones, clone_blueprints, crowns
+### New Tables (9)
+orbital_zones, feral_ai_events, scans, scan_intel, clones, clone_blueprints, crowns, smart_characters, tribes
 
-### New Endpoints (9)
-/api/cycle, /api/orbital-zones, /api/orbital-zones/{zone_id}/history, /api/scans, /api/scans/feed, /api/clones, /api/clones/queue, /api/crowns, /api/crowns/roster
+### New Endpoints (11)
+/api/cycle, /api/orbital-zones, /api/orbital-zones/{zone_id}/history, /api/orbital-zones/{zone_id}/threat, /api/scans, /api/scans/feed, /api/clones, /api/clones/queue, /api/crowns, /api/crowns/roster, /api/briefing
 
 ### New Discord Alerts (5)
 Feral AI Evolved, Hostile Scan, Blind Spot, Clone Reserve Low, AI Critical
