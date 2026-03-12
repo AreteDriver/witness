@@ -1,11 +1,11 @@
-"""Structured logging for Witness."""
+"""Structured logging for WatchTower."""
 
 import logging
 import sys
 
 
 def get_logger(name: str) -> logging.Logger:
-    logger = logging.getLogger(f"witness.{name}")
+    logger = logging.getLogger(f"watchtower.{name}")
     if not logger.handlers:
         handler = logging.StreamHandler(sys.stderr)
         handler.setFormatter(

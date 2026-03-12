@@ -1,7 +1,7 @@
-"""Witness Discord bot — chain intelligence at your fingertips.
+"""WatchTower Discord bot — chain intelligence at your fingertips.
 
 Commands:
-  /witness <name>  — Look up an entity by name or address
+  /watchtower <name>  — Look up an entity by name or address
   /killfeed         — Latest killmails
   /leaderboard      — Top killers / most deaths / most traveled
   /feed             — Recent story feed items
@@ -49,7 +49,7 @@ async def run_bot() -> None:
     )
     from backend.db.database import get_db
 
-    class WitnessBot(discord.Client):
+    class WatchTowerBot(discord.Client):
         def __init__(self) -> None:
             intents = discord.Intents.default()
             super().__init__(intents=intents)
@@ -66,9 +66,9 @@ async def run_bot() -> None:
             logger.info("Slash commands synced")
 
         async def on_ready(self) -> None:
-            logger.info("Witness bot online as %s", self.user)
+            logger.info("WatchTower bot online as %s", self.user)
 
-    bot = WitnessBot()
+    bot = WatchTowerBot()
     try:
         await bot.start(settings.DISCORD_TOKEN)
     except Exception as e:
@@ -126,14 +126,14 @@ def _register_commands(
 
     autocomplete_fn = entity_autocomplete(get_db)
 
-    # ---- /witness ----
+    # ---- /watchtower ----
 
     @tree.command(
-        name="witness",
+        name="watchtower",
         description="Look up an entity by name or address",
     )
     @app_commands.describe(query="Entity name or blockchain address")
-    async def witness_cmd(interaction: discord.Interaction, query: str) -> None:
+    async def watchtower_cmd(interaction: discord.Interaction, query: str) -> None:
         await interaction.response.defer()
         db = get_db()
 
@@ -417,7 +417,7 @@ def _register_commands(
             value="\n".join(verdicts),
             inline=False,
         )
-        embed.set_footer(text="Witness — Behavioral Intelligence")
+        embed.set_footer(text="WatchTower — Behavioral Intelligence")
         await interaction.followup.send(embed=embed)
 
     # ---- /locate ----
@@ -515,7 +515,7 @@ def _register_commands(
             ls = time.strftime("%Y-%m-%d %H:%M", time.gmtime(last_seen))
             embed.set_footer(text=(f"First seen: {fs} UTC | Last seen: {ls} UTC"))
         else:
-            embed.set_footer(text="Witness — The Living Memory of EVE Frontier")
+            embed.set_footer(text="WatchTower — The Living Memory of EVE Frontier")
         await interaction.followup.send(embed=embed)
 
     # ---- /history ----
@@ -538,7 +538,7 @@ def _register_commands(
             description=narrative[:4000],
             color=0xFF6600,
         )
-        embed.set_footer(text="Witness — AI-generated from on-chain evidence")
+        embed.set_footer(text="WatchTower — AI-generated from on-chain evidence")
         await interaction.followup.send(embed=embed)
 
     # ---- /watch ----
@@ -689,7 +689,7 @@ def _register_commands(
                 ),
                 inline=False,
             )
-        embed.set_footer(text="Witness — Behavioral Intelligence")
+        embed.set_footer(text="WatchTower — Behavioral Intelligence")
         await interaction.followup.send(embed=embed)
 
     # ---- /opsec ----
@@ -739,7 +739,7 @@ def _register_commands(
             value=f"{r.unique_gates} unique gates used",
             inline=False,
         )
-        embed.set_footer(text="Witness Oracle — Counter-Intelligence Analysis")
+        embed.set_footer(text="WatchTower Oracle — Counter-Intelligence Analysis")
         await interaction.followup.send(embed=embed)
 
     # ---- Autocomplete bindings ----

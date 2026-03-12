@@ -1,13 +1,13 @@
-# Witness Demo Script
+# WatchTower Demo Script
 
 **Duration**: 6-8 minutes
-**URL**: https://witness-evefrontier.fly.dev
+**URL**: https://watchtower-evefrontier.fly.dev
 
 ---
 
 ## 1. Opening (30s)
 
-> "Witness is the living memory of EVE Frontier. It watches the blockchain, catalogs every on-chain event, and turns raw data into actionable intelligence. But it doesn't stop there — Witness scores trust, and the chain listens."
+> "WatchTower is the living memory of EVE Frontier. It watches the blockchain, catalogs every on-chain event, and turns raw data into actionable intelligence. But it doesn't stop there — WatchTower scores trust, and the chain listens."
 
 Show the dashboard landing page. Point out the health banner showing live data counts.
 
@@ -21,7 +21,7 @@ Show the dashboard landing page. Point out the health banner showing live data c
   - **Event Timeline**: chronological kill history
   - **Narrative Panel**: AI-generated (or template) dossier
 
-> "Asterix is the deadliest pilot on the frontier — 484 confirmed kills, 7 kills per day. Their OPSEC is rated POOR because they're predictable. The Witness sees everything."
+> "Asterix is the deadliest pilot on the frontier — 484 confirmed kills, 7 kills per day. Their OPSEC is rated POOR because they're predictable. The WatchTower sees everything."
 
 ## 3. Alt Detection (45s)
 
@@ -30,7 +30,7 @@ Show the dashboard landing page. Point out the health banner showing live data c
 - Show the similarity scores: temporal, route, social, overall
 - Point out "Likely Alt?" and "Fleet Mates?" detection
 
-> "Witness can compare behavioral fingerprints to detect alts and fleet mates. Same schedules, same routes, same associates — the chain doesn't lie."
+> "WatchTower can compare behavioral fingerprints to detect alts and fleet mates. Same schedules, same routes, same associates — the chain doesn't lie."
 
 ## 4. Tactical Intelligence (60s)
 
@@ -39,7 +39,7 @@ Show the dashboard landing page. Point out the health banner showing live data c
 - Show **Danger Zones**: IL7-JQ9 with 51K kills rated EXTREME, toggle time windows
 - Show **Active Hunters**: Asterix on a 140-kill streak, Kali Anemoi at 107
 
-> "The Tactical tab is where Witness turns raw data into battlefield awareness. Who's hunting whom, which systems are death traps, and who's currently on fire. Asterix has a 140-kill streak — 25 kills this week alone."
+> "The Tactical tab is where WatchTower turns raw data into battlefield awareness. Who's hunting whom, which systems are death traps, and who's currently on fire. Asterix has a 140-kill streak — 25 kills this week alone."
 
 ## 5. Feed & Leaderboards (45s)
 
@@ -69,7 +69,7 @@ Show the dashboard landing page. Point out the health banner showing live data c
 
 **API backup**:
 ```bash
-curl https://witness-evefrontier.fly.dev/api/entity/{id}/reputation
+curl https://watchtower-evefrontier.fly.dev/api/entity/{id}/reputation
 ```
 
 ## 7. The Watcher Economy (75s)
@@ -87,18 +87,18 @@ curl https://witness-evefrontier.fly.dev/api/entity/{id}/reputation
 - Payment: 7-day subscriptions paid via Smart Assembly inventory transfer (in-game items)
 - Show tier gating: attempt a Spymaster endpoint without subscription to see the gate
 
-> "Witness runs on a Smart Contract economy. WatcherSystem.sol — a MUD v2 contract — manages three subscription tiers. Pay with in-game items at any Watcher station. Scout gets you fingerprints and reputation. Oracle adds narratives and watches. Spymaster unlocks the full intelligence suite."
+> "WatchTower runs on a Smart Contract economy. WatcherSystem.sol — a MUD v2 contract — manages three subscription tiers. Pay with in-game items at any Watcher station. Scout gets you fingerprints and reputation. Oracle adds narratives and watches. Spymaster unlocks the full intelligence suite."
 
-> "And here's the loop that closes everything: chain data flows into Witness, Witness computes reputation, reputation flows back on-chain via the contract, and Smart Assemblies enforce it. A gate deployer can set 'deny docking if trust score is below 40.' The chain writes the rules. Witness provides the judgment."
+> "And here's the loop that closes everything: chain data flows into WatchTower, WatchTower computes reputation, reputation flows back on-chain via the contract, and Smart Assemblies enforce it. A gate deployer can set 'deny docking if trust score is below 40.' The chain writes the rules. WatchTower provides the judgment."
 
 **API backup**:
 ```bash
 # Check subscription status
-curl https://witness-evefrontier.fly.dev/api/subscription/{wallet}
+curl https://watchtower-evefrontier.fly.dev/api/subscription/{wallet}
 
 # View assembly network
-curl https://witness-evefrontier.fly.dev/api/assemblies
-curl https://witness-evefrontier.fly.dev/api/assemblies/list
+curl https://watchtower-evefrontier.fly.dev/api/assemblies
+curl https://watchtower-evefrontier.fly.dev/api/assemblies/list
 ```
 
 ## 8. Earned Titles (30s)
@@ -120,7 +120,7 @@ curl https://witness-evefrontier.fly.dev/api/assemblies/list
 
 ## 10. Close (15s)
 
-> "The chain is the source of truth. Witness is the interpreter. And now, the enforcer. Witness doesn't just watch — it remembers, and the chain listens."
+> "The chain is the source of truth. WatchTower is the interpreter. And now, the enforcer. WatchTower doesn't just watch — it remembers, and the chain listens."
 
 ---
 
@@ -144,27 +144,27 @@ curl https://witness-evefrontier.fly.dev/api/assemblies/list
 
 ```bash
 # Health
-curl https://witness-evefrontier.fly.dev/api/health
+curl https://watchtower-evefrontier.fly.dev/api/health
 
 # Search
-curl 'https://witness-evefrontier.fly.dev/api/search?q=Asterix'
+curl 'https://watchtower-evefrontier.fly.dev/api/search?q=Asterix'
 
 # Fingerprint
-curl https://witness-evefrontier.fly.dev/api/entity/0x63b127.../fingerprint
+curl https://watchtower-evefrontier.fly.dev/api/entity/0x63b127.../fingerprint
 
 # Leaderboard
-curl https://witness-evefrontier.fly.dev/api/leaderboard/top_killers
+curl https://watchtower-evefrontier.fly.dev/api/leaderboard/top_killers
 
 # Narrative
-curl https://witness-evefrontier.fly.dev/api/entity/0x63b127.../narrative
+curl https://watchtower-evefrontier.fly.dev/api/entity/0x63b127.../narrative
 
 # Reputation
-curl https://witness-evefrontier.fly.dev/api/entity/0x63b127.../reputation
+curl https://watchtower-evefrontier.fly.dev/api/entity/0x63b127.../reputation
 
 # Subscription check
-curl https://witness-evefrontier.fly.dev/api/subscription/{wallet}
+curl https://watchtower-evefrontier.fly.dev/api/subscription/{wallet}
 
 # Assembly network
-curl https://witness-evefrontier.fly.dev/api/assemblies
-curl https://witness-evefrontier.fly.dev/api/assemblies/list
+curl https://watchtower-evefrontier.fly.dev/api/assemblies
+curl https://watchtower-evefrontier.fly.dev/api/assemblies/list
 ```

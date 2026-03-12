@@ -1,6 +1,6 @@
 # The Watcher — Smart Assembly Contract
 
-On-chain subscription system for Witness oracle services.
+On-chain subscription system for WatchTower oracle services.
 Players pay items to access tiered intelligence features.
 
 ## Architecture
@@ -8,7 +8,7 @@ Players pay items to access tiered intelligence features.
 ```
 Player → Smart Assembly (in-game) → Pay items → Subscription recorded on-chain
                                                         ↓
-Witness Backend ← verifies subscription ← Blockchain Gateway API
+WatchTower Backend ← verifies subscription ← Blockchain Gateway API
                                                         ↓
                                               Gated API endpoints unlock
 ```

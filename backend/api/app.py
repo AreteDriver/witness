@@ -1,4 +1,4 @@
-"""FastAPI application — Witness API server."""
+"""FastAPI application — WatchTower API server."""
 
 import asyncio
 from contextlib import asynccontextmanager
@@ -48,7 +48,7 @@ async def _run_intelligence_loops() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Witness starting up")
+    logger.info("WatchTower starting up")
     get_db()
 
     # Start background tasks
@@ -82,11 +82,11 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
     close_db()
-    logger.info("Witness shut down")
+    logger.info("WatchTower shut down")
 
 
 app = FastAPI(
-    title="Witness",
+    title="WatchTower",
     description="The Living Memory of EVE Frontier",
     version="0.1.0",
     lifespan=lifespan,
@@ -97,7 +97,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "https://witness-evefrontier.fly.dev",
+        "https://watchtower-evefrontier.fly.dev",
     ],
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE"],

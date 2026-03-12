@@ -1,4 +1,4 @@
-# CLAUDE.md — witness
+# CLAUDE.md — watchtower
 
 ## Project Overview
 
@@ -14,7 +14,7 @@ The Living Memory of EVE Frontier — chain archaeology, AI intelligence, locato
 ## Architecture
 
 ```
-witness/
+watchtower/
 ├── .github/
 │   └── workflows/
 ├── backend/

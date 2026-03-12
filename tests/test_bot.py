@@ -110,19 +110,19 @@ class TestRegisterCommands:
         not pytest.importorskip("discord", reason="discord.py not installed"),
         reason="discord.py not installed",
     )
-    async def test_witness_cmd_found(self, commands, test_db):
-        assert "witness" in commands
+    async def test_watchtower_cmd_found(self, commands, test_db):
+        assert "watchtower" in commands
         interaction = _make_interaction()
-        await commands["witness"].callback(interaction, "TestPilot")
+        await commands["watchtower"].callback(interaction, "TestPilot")
         interaction.followup.send.assert_called_once()
 
     @pytest.mark.skipif(
         not pytest.importorskip("discord", reason="discord.py not installed"),
         reason="discord.py not installed",
     )
-    async def test_witness_cmd_not_found(self, commands, test_db):
+    async def test_watchtower_cmd_not_found(self, commands, test_db):
         interaction = _make_interaction()
-        await commands["witness"].callback(interaction, "nonexistent_xyz_123")
+        await commands["watchtower"].callback(interaction, "nonexistent_xyz_123")
         interaction.followup.send.assert_called_once()
         call_args = interaction.followup.send.call_args
         assert "No entity found" in str(call_args)

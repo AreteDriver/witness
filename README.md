@@ -1,19 +1,19 @@
-# Witness — The Living Memory of EVE Frontier
+# WatchTower — The Living Memory of EVE Frontier
 
 > **Chain archaeology + AI intelligence + on-chain economy.**
 > Every gate transit, every killmail, every entity on-chain — cataloged, analyzed, scored, enforced.
 >
-> *Witness doesn't just watch — it remembers, and the chain listens.*
+> *WatchTower doesn't just watch — it remembers, and the chain listens.*
 
-**[Live Demo](https://witness-evefrontier.fly.dev)** | [API Docs](#api-endpoints) | [Discord Bot](#discord-bot) | [Assembly Guide](docs/ASSEMBLY_GUIDE.md)
+**[Live Demo](https://watchtower-evefrontier.fly.dev)** | [API Docs](#api-endpoints) | [Discord Bot](#discord-bot) | [Assembly Guide](docs/ASSEMBLY_GUIDE.md)
 
 ---
 
-## What is Witness?
+## What is WatchTower?
 
-Witness reads the EVE Frontier blockchain like a history book. It watches the World API, ingests every on-chain event, resolves entities, and generates intelligence — from deterministic earned titles to AI-written dossiers to on-chain reputation scores that gate Smart Assembly access.
+WatchTower reads the EVE Frontier blockchain like a history book. It watches the World API, ingests every on-chain event, resolves entities, and generates intelligence — from deterministic earned titles to AI-written dossiers to on-chain reputation scores that gate Smart Assembly access.
 
-The chain never forgets. Neither does Witness.
+The chain never forgets. Neither does WatchTower.
 
 ### Live Data (as of launch)
 - **4,795 killmails** ingested and analyzed
@@ -55,6 +55,7 @@ The chain never forgets. Neither does Witness.
 - **Designed for Smart Contracts** — Scores structured for direct consumption by WatcherSystem.sol
 
 ### Real-Time Intelligence
+
 - **Server-Sent Events** — Live push feed for kills, alerts, and system status
 - **Live Ticker** — Dashboard shows real-time events as they happen (kills, alerts, status)
 - **EVE SSO Login** — Verify character identity via CCP's OAuth2, cross-reference with on-chain data
@@ -103,7 +104,7 @@ World API (30s polling) → Poller → SQLite WAL
                                                     ← back on-chain →
 ```
 
-**The loop**: Data flows in from the chain → Witness analyzes and scores → reputation scores flow back on-chain via WatcherSystem.sol → Smart Assemblies enforce access based on trust → player behavior changes → new chain data flows in.
+**The loop**: Data flows in from the chain → WatchTower analyzes and scores → reputation scores flow back on-chain via WatcherSystem.sol → Smart Assemblies enforce access based on trust → player behavior changes → new chain data flows in.
 
 ### Smart Contract
 
@@ -142,8 +143,8 @@ Subscription status is verified on-chain. The backend checks wallet subscription
 
 ```bash
 # Clone and install
-git clone https://github.com/AreteDriver/witness.git
-cd witness
+git clone https://github.com/AreteDriver/watchtower.git
+cd watchtower
 pip install -e ".[dev]"
 
 # Configure (optional — works without API keys)
@@ -213,7 +214,7 @@ All endpoints under `/api/` prefix. 33 endpoints total.
 
 | Command | Description |
 |---|---|
-| `/witness <name>` | Entity lookup — stats, titles, threat level, OPSEC rating |
+| `/watchtower <name>` | Entity lookup — stats, titles, threat level, OPSEC rating |
 | `/killfeed [count]` | Latest killmails with timestamps |
 | `/leaderboard <category>` | Top killers, most deaths, most traveled |
 | `/feed` | Recent story feed items |
@@ -225,7 +226,7 @@ All endpoints under `/api/` prefix. 33 endpoints total.
 | `/watch <type> <target>` | Set a standing intelligence watch |
 | `/unwatch <target>` | Remove a standing watch |
 
-Set `WITNESS_DISCORD_TOKEN` to activate.
+Set `WATCHTOWER_DISCORD_TOKEN` to activate.
 
 ---
 
@@ -294,15 +295,15 @@ python scripts/seed_demo.py
 
 | Variable | Default | Description |
 |---|---|---|
-| `WITNESS_WORLD_API_BASE` | blockchain-gateway-stillness... | World API endpoint |
-| `WITNESS_POLL_INTERVAL_SECONDS` | 30 | Polling interval |
-| `WITNESS_DB_PATH` | data/witness.db | SQLite database path |
-| `WITNESS_ANTHROPIC_API_KEY` | (empty) | Enables AI narratives (template fallback without) |
-| `WITNESS_DISCORD_TOKEN` | (empty) | Enables Discord bot |
-| `WITNESS_DISCORD_WEBHOOK_URL` | (empty) | Alert delivery webhook |
-| `WITNESS_EVE_SSO_CLIENT_ID` | (empty) | CCP EVE SSO application client ID |
-| `WITNESS_EVE_SSO_SECRET_KEY` | (empty) | CCP EVE SSO application secret |
-| `WITNESS_EVE_SSO_CALLBACK_URL` | (empty) | OAuth2 callback URL |
+| `WATCHTOWER_WORLD_API_BASE` | blockchain-gateway-stillness... | World API endpoint |
+| `WATCHTOWER_POLL_INTERVAL_SECONDS` | 30 | Polling interval |
+| `WATCHTOWER_DB_PATH` | data/watchtower.db | SQLite database path |
+| `WATCHTOWER_ANTHROPIC_API_KEY` | (empty) | Enables AI narratives (template fallback without) |
+| `WATCHTOWER_DISCORD_TOKEN` | (empty) | Enables Discord bot |
+| `WATCHTOWER_DISCORD_WEBHOOK_URL` | (empty) | Alert delivery webhook |
+| `WATCHTOWER_EVE_SSO_CLIENT_ID` | (empty) | CCP EVE SSO application client ID |
+| `WATCHTOWER_EVE_SSO_SECRET_KEY` | (empty) | CCP EVE SSO application secret |
+| `WATCHTOWER_EVE_SSO_CALLBACK_URL` | (empty) | OAuth2 callback URL |
 
 ---
 
@@ -312,9 +313,9 @@ Built for the **EVE Frontier Hackathon** (March 2026).
 
 **Category**: Community Tools / Intelligence
 
-**Why Witness?** EVE Frontier generates permanent on-chain data but no tools exist to make sense of it. Witness turns raw blockchain events into actionable intelligence — who's dangerous, which gates are contested, when new players appear, and whether that pilot is an alt. With the reputation system and WatcherSystem.sol, intelligence flows back on-chain to enforce community standards through Smart Assembly access control.
+**Why WatchTower?** EVE Frontier generates permanent on-chain data but no tools exist to make sense of it. WatchTower turns raw blockchain events into actionable intelligence — who's dangerous, which gates are contested, when new players appear, and whether that pilot is an alt. With the reputation system and WatcherSystem.sol, intelligence flows back on-chain to enforce community standards through Smart Assembly access control.
 
-The chain is the source of truth. Witness is the interpreter. And now, the enforcer.
+The chain is the source of truth. WatchTower is the interpreter. And now, the enforcer.
 
 ---
 

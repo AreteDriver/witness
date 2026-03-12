@@ -4,7 +4,7 @@ pragma solidity >=0.8.24;
 import { System } from "@latticexyz/world/src/System.sol";
 import { WatcherSubscriptions } from "../codegen/tables/WatcherSubscriptions.sol";
 
-/// @title WatcherSystem — Subscription gating for Witness oracle services
+/// @title WatcherSystem — Subscription gating for WatchTower oracle services
 /// @notice Players pay to access tiered intelligence: Scout, Oracle, Spymaster
 /// @dev Deployed as a Smart Assembly; items exchanged via inventory system
 contract WatcherSystem is System {

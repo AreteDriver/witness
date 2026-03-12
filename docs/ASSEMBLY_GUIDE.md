@@ -14,7 +14,7 @@ Deploy Watcher subscription stations across EVE Frontier to sell oracle intel se
 1. Log into EVE Frontier
 2. Create or designate a character — this is your service provider identity
 3. Note the character's wallet address (visible in-game or via blockchain explorer)
-4. Set `WITNESS_WATCHER_OWNER_ADDRESS=0xYourAddress` in your `.env`
+4. Set `WATCHTOWER_WATCHER_OWNER_ADDRESS=0xYourAddress` in your `.env`
 
 ## Step 2: Deploy the Smart Contract
 
@@ -40,11 +40,11 @@ Note the deployed System address — you'll need it for the DApp configuration.
 Deploy assemblies in high-traffic systems for maximum visibility:
 
 1. **Trade hubs** — wherever players congregate
-2. **Gate chokepoints** — systems with the most gate transits (check your Witness hotzones data)
+2. **Gate chokepoints** — systems with the most gate transits (check your WatchTower hotzones data)
 3. **Combat zones** — near dangerous systems where intel is most valuable
 4. **Spawn areas** — where new players start
 
-Use the Witness `/hotzones` endpoint to identify the busiest systems.
+Use the WatchTower `/hotzones` endpoint to identify the busiest systems.
 
 ### Deploying an Assembly
 
@@ -58,9 +58,9 @@ Use the Witness `/hotzones` endpoint to identify the busiest systems.
 ### Assembly Naming Convention
 
 Name your assemblies for discoverability:
-- `[WITNESS] Oracle Station — {System Name}`
-- `[WITNESS] The Watcher's Eye`
-- `[WITNESS] Intel Service`
+- `[WATCHTOWER] Oracle Station — {System Name}`
+- `[WATCHTOWER] The Watcher's Eye`
+- `[WATCHTOWER] Intel Service`
 
 ## Step 4: Configure Subscription Tiers
 
@@ -84,7 +84,7 @@ setRatio(itemTypeId, 500, TIER_SPYMASTER)
 
 ## Step 5: Monitor Your Fleet
 
-The Witness dashboard auto-tracks your assemblies:
+The WatchTower dashboard auto-tracks your assemblies:
 - Visit the **Tactical** tab → **Watcher Network** panel
 - Shows online/offline status, system locations, fleet health
 - Updates automatically every 30 seconds (same as poller cycle)
@@ -103,7 +103,7 @@ The Witness dashboard auto-tracks your assemblies:
 2. The assembly name itself advertises the service
 3. Players who interact see what's available
 
-### On the Witness Dashboard
+### On the WatchTower Dashboard
 
 The **Watcher Network** panel shows all your stations:
 - Green dot = online and serving
@@ -119,7 +119,7 @@ itself generates conversation: "What's your trust score?"
 
 1. **Start with 3-5 assemblies** in the highest-traffic systems
 2. **Check fuel daily** — offline stations don't earn
-3. **Use Witness data to choose locations** — deploy where the kills happen
+3. **Use WatchTower data to choose locations** — deploy where the kills happen
 4. **Monitor the story feed** — if a system goes hot, deploy there
 5. **Keep The Watcher character active** — occasional gate transits build presence
 6. **Respond to destruction** — if someone blows up your station, that's content. Redeploy.
@@ -127,7 +127,7 @@ itself generates conversation: "What's your trust score?"
 ## Troubleshooting
 
 ### Assembly not appearing on dashboard
-- Check that `WITNESS_WATCHER_OWNER_ADDRESS` matches your in-game wallet
+- Check that `WATCHTOWER_WATCHER_OWNER_ADDRESS` matches your in-game wallet
 - Wait for next poller cycle (30 seconds)
 - Verify the assembly is anchored and online
 

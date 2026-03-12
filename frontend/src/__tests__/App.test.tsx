@@ -100,9 +100,9 @@ beforeEach(() => {
 });
 
 describe("App", () => {
-  it("renders WITNESS header", () => {
+  it("renders WATCHTOWER header", () => {
     renderApp();
-    expect(screen.getByText("WITNESS")).toBeInTheDocument();
+    expect(screen.getByText("WATCHTOWER")).toBeInTheDocument();
   });
 
   it("renders The Living Memory subtitle", () => {

@@ -36,7 +36,7 @@ def seeded_db(db):
             2.0,
             3.0,
             "online",
-            "[WITNESS] Oracle Station",
+            "[WATCHTOWER] Oracle Station",
         ),
     )
     db.execute(
@@ -55,7 +55,7 @@ def seeded_db(db):
             5.0,
             6.0,
             "online",
-            "[WITNESS] Intel Hub",
+            "[WATCHTOWER] Intel Hub",
         ),
     )
     db.execute(
@@ -93,7 +93,7 @@ def seeded_db(db):
             11.0,
             12.0,
             "offline",
-            "[WITNESS] Down Station",
+            "[WATCHTOWER] Down Station",
         ),
     )
     db.commit()

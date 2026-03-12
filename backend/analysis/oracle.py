@@ -30,13 +30,13 @@ CLONE_RESERVE_THRESHOLD = 5  # configurable via conditions
 async def fire_webhook(webhook_url: str, title: str, message: str, color: int = EVE_ORANGE):
     """Send a Discord webhook embed."""
     payload = {
-        "username": "Witness Oracle",
+        "username": "WatchTower Oracle",
         "embeds": [
             {
                 "title": title,
                 "description": message,
                 "color": color,
-                "footer": {"text": "Witness — The Living Memory of EVE Frontier"},
+                "footer": {"text": "WatchTower — The Living Memory of EVE Frontier"},
                 "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             }
         ],

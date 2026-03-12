@@ -1,4 +1,4 @@
-"""Rate limiting — slowapi integration for Witness API."""
+"""Rate limiting — slowapi integration for WatchTower API."""
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address

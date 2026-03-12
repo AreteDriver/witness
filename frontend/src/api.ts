@@ -1,6 +1,6 @@
 const BASE = '/api';
 
-const STORAGE_KEY = 'witness_wallet';
+const STORAGE_KEY = 'watchtower_wallet';
 
 function getAuthHeaders(): Record<string, string> {
   const wallet = localStorage.getItem(STORAGE_KEY);
@@ -325,7 +325,7 @@ export interface CrownRoster {
   uncrowned: number;
 }
 
-const EVE_SESSION_KEY = 'witness_eve_session';
+const EVE_SESSION_KEY = 'watchtower_eve_session';
 
 function getEveHeaders(): Record<string, string> {
   const session = localStorage.getItem(EVE_SESSION_KEY);

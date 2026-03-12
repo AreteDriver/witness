@@ -124,7 +124,7 @@ describe("api", () => {
   });
 
   it("injects X-Wallet-Address header when wallet is stored", async () => {
-    localStorage.setItem("witness_wallet", "0xdeadbeef");
+    localStorage.setItem("watchtower_wallet", "0xdeadbeef");
     mockOk({ status: "ok" });
     await api.health();
     expect(mockFetch).toHaveBeenCalledWith(

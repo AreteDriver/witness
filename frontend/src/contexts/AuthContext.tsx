@@ -35,8 +35,8 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-const STORAGE_KEY = 'witness_wallet';
-const EVE_SESSION_KEY = 'witness_eve_session';
+const STORAGE_KEY = 'watchtower_wallet';
+const EVE_SESSION_KEY = 'watchtower_eve_session';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [wallet, setWallet] = useState<string | null>(null);

@@ -298,13 +298,13 @@ async def test_autocomplete_gate_type_label(seeded_db):
     assert "GATE" in name
 
 
-# ---- /witness ----
+# ---- /watchtower ----
 
 
 @pytest.mark.asyncio
-async def test_witness_found(registered):
-    """Witness returns embed for matching entity."""
-    cmd, db = _get_cmd(registered, "witness")
+async def test_watchtower_found(registered):
+    """WatchTower returns embed for matching entity."""
+    cmd, db = _get_cmd(registered, "watchtower")
     interaction = _make_interaction()
     await cmd(interaction, "TestPilot")
 
@@ -315,9 +315,9 @@ async def test_witness_found(registered):
 
 
 @pytest.mark.asyncio
-async def test_witness_not_found(registered):
-    """Witness reports when entity not found."""
-    cmd, db = _get_cmd(registered, "witness")
+async def test_watchtower_not_found(registered):
+    """WatchTower reports when entity not found."""
+    cmd, db = _get_cmd(registered, "watchtower")
     interaction = _make_interaction()
     await cmd(interaction, "nonexistent_zzz")
 
@@ -326,9 +326,9 @@ async def test_witness_not_found(registered):
 
 
 @pytest.mark.asyncio
-async def test_witness_with_titles(registered):
-    """Witness shows titles when present."""
-    cmd, db = _get_cmd(registered, "witness")
+async def test_watchtower_with_titles(registered):
+    """WatchTower shows titles when present."""
+    cmd, db = _get_cmd(registered, "watchtower")
     db.execute(
         "INSERT INTO entity_titles"
         " (entity_id, title, title_type)"

@@ -1,4 +1,4 @@
-"""Witness configuration — all settings from environment or .env file."""
+"""WatchTower configuration — all settings from environment or .env file."""
 
 from pydantic_settings import BaseSettings
 
@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     POLL_TIMEOUT_SECONDS: float = 10.0
 
     # Database
-    DB_PATH: str = "data/witness.db"
+    DB_PATH: str = "data/watchtower.db"
 
     # Discord bot
     DISCORD_TOKEN: str = ""
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
-    model_config = {"env_file": ".env", "env_prefix": "WITNESS_"}
+    model_config = {"env_file": ".env", "env_prefix": "WATCHTOWER_"}
 
 
 settings = Settings()

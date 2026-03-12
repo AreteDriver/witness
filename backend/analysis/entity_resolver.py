@@ -165,8 +165,7 @@ def _enrich_character(db: sqlite3.Connection, dossier: EntityDossier) -> None:
     if sc_row:
         # Overwrite if display_name is empty or just a truncated address
         if sc_row["name"] and (
-            not dossier.display_name
-            or dossier.display_name == dossier.entity_id[:12]
+            not dossier.display_name or dossier.display_name == dossier.entity_id[:12]
         ):
             dossier.display_name = sc_row["name"]
         dossier.character_id = sc_row["character_id"]

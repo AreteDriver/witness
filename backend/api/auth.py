@@ -64,7 +64,7 @@ async def eve_sso_login(
     if not settings.EVE_SSO_CLIENT_ID:
         raise HTTPException(
             status_code=503,
-            detail="EVE SSO not configured. Set WITNESS_EVE_SSO_CLIENT_ID.",
+            detail="EVE SSO not configured. Set WATCHTOWER_EVE_SSO_CLIENT_ID.",
         )
 
     state = secrets.token_urlsafe(32)

@@ -304,7 +304,7 @@ export default function App() {
             onClick={() => navigate('/')}
           >
             <h1 className="text-lg sm:text-xl font-bold tracking-wider">
-              <span className="text-[var(--eve-green)]">WITNESS</span>
+              <span className="text-[var(--eve-green)]">WATCHTOWER</span>
               <span className="text-[var(--eve-dim)] text-xs sm:text-sm ml-2 hidden sm:inline">
                 The Living Memory
               </span>
@@ -332,7 +332,7 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t border-[var(--eve-border)] px-4 sm:px-6 py-4 mt-12">
         <div className="max-w-7xl mx-auto text-center text-xs text-[var(--eve-dim)]">
-          Witness — Chain Archaeology + Oracle Intelligence — EVE Frontier Hackathon 2026
+          WatchTower — Chain Archaeology + Oracle Intelligence — EVE Frontier Hackathon 2026
         </div>
       </footer>
     </div>

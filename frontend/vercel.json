@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://witness-evefrontier.fly.dev/api/:path*"
+      "destination": "https://watchtower-evefrontier.fly.dev/api/:path*"
     }
   ]
 }

@@ -1,5 +1,5 @@
 [project]
-name = "witness"
+name = "watchtower"
 version = "0.1.0"
 description = "The Living Memory of EVE Frontier — chain archaeology, AI intelligence, locator agent"
 readme = "README.md"

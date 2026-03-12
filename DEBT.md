@@ -1,6 +1,6 @@
-# Technical Debt Audit — Witness
+# Technical Debt Audit — WatchTower
 
-**Project**: Witness — The Living Memory of EVE Frontier
+**Project**: WatchTower — The Living Memory of EVE Frontier
 **Audit Date**: 2026-03-10
 **Auditor**: Claude Opus 4.6
 **Context**: EVE Frontier x Sui Hackathon 2026 (March 11-31)
@@ -13,7 +13,7 @@
 
 **Overall Grade: B+ (7.8/10)**
 
-Witness is a mature hackathon project with strong fundamentals: 383 tests passing (42 skipped), robust CI/CD with 4-job pipeline (lint/test/frontend/security), proper secret management, SSRF prevention, rate limiting, path traversal protection, and security headers. No critical security blockers found. The codebase is clean — zero TODO/FIXME markers, zero bare excepts, proper logging throughout. Main gaps: 3 ruff lint violations in tests, `discord_bot.py` at 752 lines (largest file), `eve_sessions` table stores access tokens in plaintext, and no SQLite backup strategy for production.
+WatchTower is a mature hackathon project with strong fundamentals: 383 tests passing (42 skipped), robust CI/CD with 4-job pipeline (lint/test/frontend/security), proper secret management, SSRF prevention, rate limiting, path traversal protection, and security headers. No critical security blockers found. The codebase is clean — zero TODO/FIXME markers, zero bare excepts, proper logging throughout. Main gaps: 3 ruff lint violations in tests, `discord_bot.py` at 752 lines (largest file), `eve_sessions` table stores access tokens in plaintext, and no SQLite backup strategy for production.
 
 ---
 
@@ -53,7 +53,7 @@ Adjustment: -0.3 for plaintext access tokens in DB + 3 lint failures in CI.
 - **`.env` properly gitignored** — only `.env.example` tracked (confirmed via `git ls-files`)
 - **No .db files in git** — `data/*.db` in `.gitignore`, confirmed no DB files tracked
 - **`.pem`, `.key`, `.p12` patterns** all in `.gitignore`
-- **All credentials via `pydantic-settings`** with `WITNESS_` env prefix
+- **All credentials via `pydantic-settings`** with `WATCHTOWER_` env prefix
 - **Parameterized SQL throughout** — no string interpolation in queries with user input
 - **SSRF prevention** on webhook URLs — private IP regex + domain allowlist (Discord only)
 - **Path traversal protection** — `is_relative_to(FRONTEND_DIR)` check in static file serving
@@ -179,7 +179,7 @@ Test matrix: Python 3.11 + 3.12
   - Discord bot command reference (11 commands)
   - Smart Contract subscription tier table
   - Tech stack and design principles
-  - Hackathon context and "why Witness?"
+  - Hackathon context and "why WatchTower?"
 - **LICENSE** — MIT, proper copyright
 - **CLAUDE.md** — comprehensive project context with anti-patterns
 - **`.env.example`** — commented with confirmed API base URL

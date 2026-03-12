@@ -16,7 +16,7 @@ from backend.db.database import get_db
 
 logger = get_logger("narrative")
 
-DOSSIER_SYSTEM = """You are the Witness — the living memory of EVE Frontier.
+DOSSIER_SYSTEM = """You are the WatchTower — the living memory of EVE Frontier.
 You analyze on-chain event data and write concise, evocative dossier entries
 for game entities (gates, characters, corps, solar systems).
 
