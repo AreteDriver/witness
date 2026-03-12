@@ -455,7 +455,7 @@ async def run_warden_cycle() -> list[Hypothesis]:
                         f"warden_{h.category.lower()}",
                         h.title,
                         h.description,
-                        h.entity_id or h.zone_id,
+                        json.dumps([h.entity_id or h.zone_id]),
                         "critical" if h.composite >= 0.8 else "warning",
                         now,
                     ),
