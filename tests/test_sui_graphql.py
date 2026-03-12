@@ -8,6 +8,7 @@ from backend.ingestion.sui_graphql import (
     SuiGraphQLPoller,
     _item_id,
     _parse_sui_timestamp,
+    fetch_all_character_names,
     transform_assemblies,
     transform_characters,
     transform_gate_jumps,
@@ -271,3 +272,79 @@ async def test_poller_cursor_persists(monkeypatch):
 
     assert captured_cursors == ["prev_cursor"]
     assert poller.cursors["killmail"] == "new_cursor"
+
+
+# --- Bulk character name resolution ---
+
+
+SAMPLE_CHARACTER_OBJECT = {
+    "asMoveObject": {
+        "contents": {
+            "json": {
+                "character_address": "0xc4b7d17877d2d6c64423e90a6df24a1a5445d0bf0415a263eb97e069c3120946",
+                "key": {"item_id": "2112077429", "tenant": "stillness"},
+                "tribe_id": 1000167,
+                "metadata": {
+                    "assembly_id": "0x978a73b0",
+                    "name": "Bhal Jhor",
+                    "description": "",
+                    "url": "",
+                },
+            }
+        }
+    }
+}
+
+
+@pytest.mark.asyncio
+async def test_fetch_all_character_names(monkeypatch):
+    """Test bulk character name resolution from Sui objects."""
+    import httpx
+    from unittest.mock import AsyncMock, MagicMock
+
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+        "data": {
+            "objects": {
+                "nodes": [SAMPLE_CHARACTER_OBJECT],
+                "pageInfo": {"hasNextPage": False, "endCursor": None},
+            }
+        }
+    }
+
+    mock_client = AsyncMock(spec=httpx.AsyncClient)
+    mock_client.post.return_value = mock_response
+
+    results = await fetch_all_character_names(mock_client, max_pages=1)
+
+    assert len(results) == 1
+    assert results[0]["name"] == "Bhal Jhor"
+    assert results[0]["address"] == "0xc4b7d17877d2d6c64423e90a6df24a1a5445d0bf0415a263eb97e069c3120946"
+    assert results[0]["id"] == "2112077429"
+    assert results[0]["_tribe_id"] == 1000167
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_only_runs_once(monkeypatch):
+    """Test that bootstrap_character_names only runs once."""
+    poller = SuiGraphQLPoller()
+
+    async def mock_fetch_names(client, max_pages=30, page_size=50):
+        return [{"address": "0xabc", "name": "Test", "id": "1", "_tribe_id": 0}]
+
+    monkeypatch.setattr(
+        "backend.ingestion.sui_graphql.fetch_all_character_names",
+        mock_fetch_names,
+    )
+
+    import httpx
+
+    async with httpx.AsyncClient() as client:
+        first = await poller.bootstrap_character_names(client)
+        second = await poller.bootstrap_character_names(client)
+
+    assert len(first) == 1
+    assert len(second) == 0  # Already bootstrapped
+    assert poller.names_bootstrapped is True

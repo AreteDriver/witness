@@ -891,10 +891,27 @@ async def run_poller() -> None:
             except Exception as e:
                 logger.critical("Sui poller loop error (continuing): %s", e)
 
+            # === Bootstrap: one-time bulk character name resolution ===
+            try:
+                if not sui.names_bootstrapped:
+                    raw_names = await sui.bootstrap_character_names(client)
+                    if raw_names:
+                        boot_db = get_db()
+                        new_names = _ingest_smart_characters(boot_db, raw_names)
+                        if new_names:
+                            _enrich_entities_from_characters(boot_db)
+                            boot_db.commit()
+                            logger.info(
+                                "Bootstrap: %d character names resolved from Sui",
+                                new_names,
+                            )
+            except Exception as e:
+                logger.error("Character name bootstrap error (continuing): %s", e)
+
             # === Reference data from Sui GraphQL (characters) + World API (tribes) ===
             try:
                 if cycle_counter % 10 == 0:
-                    # Characters from Sui GraphQL
+                    # Characters from Sui GraphQL (incremental events)
                     raw_chars = await sui.poll_characters(client)
 
                     # Tribes from World API (still serves static/reference data)

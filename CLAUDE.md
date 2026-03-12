@@ -60,14 +60,25 @@ cd frontend && npx vercel --prod              # deploy frontend
 
 ---
 
-## World API Status
+## World API Status — DEAD BY DESIGN
 
-`blockchain-gateway-stillness.live.tech.evefrontier.com` → NXDOMAIN (as of March 12, 2026). Between-cycles shutdown by CCP. All variant hostnames (utopia, nova, bare gateway) also dead. No alternate endpoint in docs.
+**Confirmed by Scetrov [REAP], March 11 2026:** Dynamic data (killmails, entities, gates) was intentionally removed from the World API. CCP migrated all dynamic data to the **Sui GraphQL API**. The World API now serves static world data only.
 
-- Poller runs every 30s, fails silently, auto-resumes when DNS resolves
-- Current cycle data frozen: 33 entities, 60 killmails, 43 stories
+- `blockchain-gateway-stillness.live.tech.evefrontier.com` → NXDOMAIN
+- Static data docs: `https://world-api-stillness.live.tech.evefrontier.com/docs/index.html`
+- **This is NOT a temporary outage.** The poller is hitting a permanently dead endpoint.
+- Current cycle data frozen: 33 entities, 60 killmails, 51 stories
 - Previous cycle (archived): 36K entities, 4.7K killmails, 170 titles
-- **+10% deploy bonus window: April 1–15** (after March 31 submission deadline)
+
+### Sui GraphQL Migration — #1 Technical Blocker
+
+WatchTower must migrate from World API polling to Sui GraphQL queries to restore live data. Without this, no path to the +10% Stillness deployment bonus (April 1–15).
+
+- [ ] Identify Sui GraphQL endpoint for EVE Frontier world-contract events
+- [ ] Migrate killmail indexer from World API to Sui GraphQL
+- [ ] Migrate entity/gate event indexer
+- [ ] Verify data parity with archived cycle data
+- [ ] Confirm live data flowing before March 31
 
 Do NOT use previous cycle numbers as current. Submit March 31, deploy live April 1–15.
 
@@ -137,7 +148,16 @@ WatchTower's lane is **uncontested on intelligence depth**. Only submission doin
 
 ---
 
-## Judging Criteria
+## Judging & Schedule
+
+**Prize pool:** $80K total. 1st: $15K + $10K SUI + FanFest. 2nd: $7.5K + $5K SUI. 3rd: $5K + $2.5K SUI. Category champions (5x): $5K + $1K SUI each.
+
+| Date | Milestone |
+|---|---|
+| March 31 | Submission deadline |
+| April 1–15 | Stillness deploy window (+10% bonus) + community voting |
+| April 15–22 | Judging |
+| April 24 | Winners announced |
 
 | Category | Fit | Strategy |
 |---|---|---|

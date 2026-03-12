@@ -296,6 +296,113 @@ def transform_gate_jumps(events: list[dict]) -> list[dict]:
     return results
 
 
+# GraphQL query for bulk Character objects (name resolution)
+CHARACTERS_QUERY = """
+query FetchCharacters($type: String!, $first: Int!, $after: String) {
+  objects(
+    filter: { type: $type }
+    first: $first
+    after: $after
+  ) {
+    nodes {
+      asMoveObject {
+        contents { json }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+"""
+
+CHARACTER_TYPE = f"{STILLNESS_PKG}::character::Character"
+
+
+async def fetch_all_character_names(
+    client: httpx.AsyncClient,
+    max_pages: int = 30,
+    page_size: int = 50,
+) -> list[dict]:
+    """Bulk fetch all Character objects from Sui to resolve names.
+
+    Returns list of World API-compatible smartcharacter dicts with names populated
+    from on-chain metadata.name field. ~1,300 characters, ~27 pages.
+    """
+    all_chars: list[dict] = []
+    cursor: str | None = None
+
+    for page in range(max_pages):
+        variables: dict = {
+            "type": CHARACTER_TYPE,
+            "first": page_size,
+        }
+        if cursor:
+            variables["after"] = cursor
+
+        try:
+            r = await client.post(
+                SUI_GRAPHQL_URL,
+                json={"query": CHARACTERS_QUERY, "variables": variables},
+                timeout=15.0,  # Longer timeout for bulk queries
+            )
+            r.raise_for_status()
+            data = r.json()
+
+            if "errors" in data:
+                logger.error(
+                    "Sui character fetch errors (page %d): %s",
+                    page,
+                    data["errors"],
+                )
+                break
+
+            objects_data = data.get("data", {}).get("objects", {})
+            nodes = objects_data.get("nodes", [])
+
+            for node in nodes:
+                contents = (
+                    node.get("asMoveObject", {})
+                    .get("contents", {})
+                    .get("json", {})
+                )
+                if not contents:
+                    continue
+
+                character_address = contents.get("character_address", "")
+                metadata = contents.get("metadata", {})
+                name = ""
+                if isinstance(metadata, dict):
+                    name = metadata.get("name", "")
+                character_item_id = _item_id(contents.get("key", {}))
+                tribe_id = contents.get("tribe_id", 0)
+
+                all_chars.append({
+                    "address": character_address,
+                    "name": name,
+                    "id": character_item_id,
+                    "_tribe_id": tribe_id,
+                })
+
+            page_info = objects_data.get("pageInfo", {})
+            cursor = page_info.get("endCursor")
+            if not page_info.get("hasNextPage"):
+                break
+
+        except httpx.TimeoutException:
+            logger.warning(
+                "Sui character bulk fetch timeout (page %d)", page
+            )
+            break
+        except Exception as e:
+            logger.error("Sui character bulk fetch error: %s", e)
+            break
+
+    logger.info("Fetched %d character names from Sui objects", len(all_chars))
+    return all_chars
+
+
 class SuiGraphQLPoller:
     """Stateful poller that tracks cursors for incremental fetching."""
 
@@ -306,6 +413,7 @@ class SuiGraphQLPoller:
             "assembly": None,
             "jump": None,
         }
+        self.names_bootstrapped = False
 
     async def poll_killmails(
         self, client: httpx.AsyncClient
@@ -358,3 +466,17 @@ class SuiGraphQLPoller:
         if cursor:
             self.cursors["jump"] = cursor
         return transform_gate_jumps(events)
+
+    async def bootstrap_character_names(
+        self, client: httpx.AsyncClient
+    ) -> list[dict]:
+        """One-time bulk fetch of all character names from on-chain objects.
+
+        Returns smartcharacter-shaped dicts with names populated.
+        Should be called once on startup, then incremental via poll_characters.
+        """
+        if self.names_bootstrapped:
+            return []
+        chars = await fetch_all_character_names(client)
+        self.names_bootstrapped = True
+        return chars
