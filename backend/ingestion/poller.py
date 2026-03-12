@@ -539,16 +539,24 @@ def _ingest_smart_characters(db, characters: list[dict]) -> int:
         address = raw.get("address")
         if not address:
             continue
+
+        # Sui data passes tribe_id as _tribe_id
+        tribe_id = raw.get("_tribe_id") or raw.get("tribe_id")
+
         try:
             cursor = db.execute(
                 """INSERT INTO smart_characters
-                   (address, name, character_id, raw_json)
-                   VALUES (?, ?, ?, ?)
+                   (address, name, character_id, tribe_id, raw_json)
+                   VALUES (?, ?, ?, ?, ?)
                    ON CONFLICT(address) DO UPDATE SET
                        name = COALESCE(NULLIF(excluded.name, ''), smart_characters.name),
                        character_id = COALESCE(
-                           excluded.character_id,
+                           NULLIF(excluded.character_id, ''),
                            smart_characters.character_id
+                       ),
+                       tribe_id = COALESCE(
+                           NULLIF(excluded.tribe_id, ''),
+                           smart_characters.tribe_id
                        ),
                        raw_json = excluded.raw_json,
                        ingested_at = unixepoch()""",
@@ -556,6 +564,7 @@ def _ingest_smart_characters(db, characters: list[dict]) -> int:
                     str(address),
                     raw.get("name", ""),
                     str(raw.get("id", "")),
+                    str(tribe_id) if tribe_id else None,
                     json.dumps(raw),
                 ),
             )
@@ -642,40 +651,51 @@ async def _fetch_tribe_details(
 
 
 def _enrich_entities_from_characters(db) -> None:
-    """Update entity display names and corp_id from smart_characters."""
+    """Update entity display names and corp_id from smart_characters.
+
+    Joins on BOTH address and character_id because:
+    - World API entities used wallet address as entity_id
+    - Sui GraphQL entities use item_id (from key.item_id) as entity_id
+    """
     try:
-        # Update display names
+        # Update display names (match on address OR character_id)
         db.execute("""
             UPDATE entities SET
                 display_name = (
                     SELECT sc.name FROM smart_characters sc
-                    WHERE sc.address = entities.entity_id
+                    WHERE (sc.address = entities.entity_id
+                           OR sc.character_id = entities.entity_id)
                     AND sc.name != ''
+                    LIMIT 1
                 ),
                 updated_at = unixepoch()
             WHERE entity_type = 'character'
             AND EXISTS (
                 SELECT 1 FROM smart_characters sc
-                WHERE sc.address = entities.entity_id
+                WHERE (sc.address = entities.entity_id
+                       OR sc.character_id = entities.entity_id)
                 AND sc.name != ''
-                AND sc.name != entities.display_name
+                AND sc.name != COALESCE(entities.display_name, '')
             )
         """)
 
-        # Update corp_id from tribe_id
+        # Update corp_id from tribe_id (match on address OR character_id)
         db.execute("""
             UPDATE entities SET
                 corp_id = (
                     SELECT sc.tribe_id FROM smart_characters sc
-                    WHERE sc.address = entities.entity_id
+                    WHERE (sc.address = entities.entity_id
+                           OR sc.character_id = entities.entity_id)
                     AND sc.tribe_id IS NOT NULL
                     AND sc.tribe_id != ''
+                    LIMIT 1
                 ),
                 updated_at = unixepoch()
             WHERE entity_type = 'character'
             AND EXISTS (
                 SELECT 1 FROM smart_characters sc
-                WHERE sc.address = entities.entity_id
+                WHERE (sc.address = entities.entity_id
+                       OR sc.character_id = entities.entity_id)
                 AND sc.tribe_id IS NOT NULL
                 AND sc.tribe_id != ''
                 AND (entities.corp_id IS NULL
