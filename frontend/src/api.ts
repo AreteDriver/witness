@@ -117,6 +117,7 @@ export interface FeedItem {
   event_type: string;
   headline: string;
   body: string;
+  entity_ids: string[];
   severity: string;
   timestamp: number;
 }

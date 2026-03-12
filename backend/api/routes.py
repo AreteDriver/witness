@@ -24,6 +24,7 @@ from backend.analysis.streaks import compute_streaks, get_hot_streaks
 from backend.analysis.subscriptions import check_subscription, record_subscription
 from backend.api.rate_limit import limiter
 from backend.api.tier_gate import check_tier_access, is_admin_wallet
+from backend.core.config import settings
 from backend.core.logger import get_logger
 from backend.db.database import get_db
 
@@ -182,7 +183,15 @@ async def get_story_feed(
         rows = db.execute(
             "SELECT * FROM story_feed ORDER BY timestamp DESC LIMIT ?", (limit,)
         ).fetchall()
-    return {"items": [dict(r) for r in rows]}
+    items = []
+    for r in rows:
+        item = dict(r)
+        try:
+            item["entity_ids"] = json.loads(item.get("entity_ids") or "[]")
+        except (json.JSONDecodeError, TypeError):
+            item["entity_ids"] = []
+        items.append(item)
+    return {"items": items}
 
 
 @router.get("/leaderboard/{category}")
@@ -403,6 +412,24 @@ async def list_assemblies():
 @router.get("/subscription/{wallet_address}")
 async def get_subscription(wallet_address: str):
     """Check subscription status for a wallet address."""
+    if settings.HACKATHON_MODE:
+        from datetime import UTC, date, datetime
+
+        try:
+            ends = date.fromisoformat(settings.HACKATHON_ENDS)
+            if date.today() <= ends:
+                expires_ts = int(
+                    datetime.combine(ends, datetime.min.time(), UTC).timestamp()
+                )
+                return {
+                    "wallet": wallet_address,
+                    "tier": 3,
+                    "tier_name": "Spymaster",
+                    "expires_at": expires_ts,
+                    "active": True,
+                }
+        except ValueError:
+            pass
     db = get_db()
     return check_subscription(db, wallet_address)
 
@@ -512,6 +539,33 @@ async def get_admin_analytics(request: Request):
             "spymaster": tier_dist.get(3, 0),
         },
         "top_active_7d": [dict(r) for r in top_active],
+    }
+
+
+@router.post("/admin/backfill-stories")
+@limiter.limit("2/minute")
+async def backfill_stories(request: Request):
+    """Clear and regenerate all story feed items with current templates."""
+    wallet = request.headers.get("X-Wallet-Address", "")
+    if not wallet or not is_admin_wallet(wallet):
+        raise HTTPException(403, "Admin access required.")
+
+    db = get_db()
+    old_count = db.execute("SELECT COUNT(*) as cnt FROM story_feed").fetchone()["cnt"]
+    db.execute("DELETE FROM story_feed")
+    db.commit()
+
+    from backend.analysis.story_feed import generate_feed_items, generate_historical_feed
+
+    hist = generate_historical_feed()
+    live = generate_feed_items()
+
+    new_count = db.execute("SELECT COUNT(*) as cnt FROM story_feed").fetchone()["cnt"]
+    return {
+        "cleared": old_count,
+        "historical_generated": hist,
+        "live_generated": live,
+        "total": new_count,
     }
 
 

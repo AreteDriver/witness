@@ -1,5 +1,7 @@
 """Subscription tier gating — enforce access control on premium endpoints."""
 
+from datetime import date
+
 from fastapi import HTTPException, Request
 
 from backend.analysis.subscriptions import TIER_NAMES, get_tier_for_endpoint
@@ -32,10 +34,20 @@ def check_tier_access(request: Request, route_name: str) -> None:
 
     Reads wallet address from X-Wallet-Address header.
     Admin wallets bypass all tier checks.
+    Hackathon mode grants Spymaster to all users.
     Free-tier endpoints pass through without checks.
 
     Raises HTTPException(403) if insufficient tier.
     """
+    # Hackathon mode — everyone gets full access until expiry date
+    if settings.HACKATHON_MODE:
+        try:
+            ends = date.fromisoformat(settings.HACKATHON_ENDS)
+            if date.today() <= ends:
+                return
+        except ValueError:
+            pass  # Bad date format, fall through to normal gating
+
     endpoint_path = _GATED_ROUTES.get(route_name)
     if not endpoint_path:
         return  # Not a gated route

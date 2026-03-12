@@ -68,7 +68,10 @@ def _get_kill_timestamps(db: sqlite3.Connection, entity_id: str) -> list[int]:
         try:
             attackers = json.loads(row["attacker_character_ids"])
             for a in attackers:
-                addr = str(a.get("address") or a.get("characterId") or a.get("id", ""))
+                if isinstance(a, str):
+                    addr = a
+                else:
+                    addr = str(a.get("address") or a.get("characterId") or a.get("id", ""))
                 if addr == entity_id:
                     timestamps.append(row["timestamp"])
                     break

@@ -145,6 +145,7 @@ def test_admin_bypasses_tier_gate(test_db):
         patch("backend.db.database.get_db", return_value=test_db),
     ):
         mock_settings.admin_address_set = {ADMIN_WALLET.lower()}
+        mock_settings.HACKATHON_MODE = False
         # Should pass Spymaster-gated route without any subscription
         check_tier_access(req, "get_kill_graph")
 

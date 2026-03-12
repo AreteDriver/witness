@@ -34,6 +34,11 @@ class Settings(BaseSettings):
             return set()
         return {a.strip().lower() for a in self.ADMIN_ADDRESSES.split(",") if a.strip()}
 
+    # Hackathon mode — all users get Spymaster tier
+    # Auto-expires after HACKATHON_ENDS date (YYYY-MM-DD)
+    HACKATHON_MODE: bool = False
+    HACKATHON_ENDS: str = "2026-04-01"
+
     # Warden (autonomous threat intelligence loop)
     WARDEN_ENABLED: bool = True
     WARDEN_MAX_ITERATIONS: int = 10
