@@ -92,14 +92,14 @@ export function CrownRoster() {
       {crowns.length > 0 && (
         <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded p-3">
           <div className="text-xs text-[var(--eve-dim)] mb-2 uppercase font-bold">Members</div>
-          <div className="space-y-1 max-h-60 overflow-y-auto">
+          <div className="space-y-0.5 max-h-60 overflow-y-auto pr-1">
             {crowns.map((c) => (
-              <div key={c.crown_id} className="flex justify-between items-center text-xs">
-                <span className="text-[var(--eve-text)]">
+              <div key={c.crown_id} className="flex items-center gap-2 text-xs">
+                <span className="text-[var(--eve-text)] flex-1 truncate">
                   {c.character_name || c.character_id}
                 </span>
                 <span
-                  className="font-bold capitalize"
+                  className="font-bold capitalize shrink-0 text-right"
                   style={{ color: CROWN_COLORS[c.crown_type] || 'var(--eve-dim)' }}
                 >
                   {c.crown_type || 'none'}

@@ -170,3 +170,203 @@ def get_system_activity(
         "top_victims": [dict(r) for r in top_killers],
         "danger_level": _danger_level(kills["total"]),
     }
+
+
+def _resolve_names(
+    db: sqlite3.Connection,
+    entity_ids: set[str],
+) -> dict[str, str]:
+    """Resolve entity IDs to display names."""
+    names: dict[str, str] = {}
+    for eid in entity_ids:
+        row = db.execute(
+            "SELECT display_name FROM entities WHERE entity_id = ?",
+            (eid,),
+        ).fetchone()
+        names[eid] = (
+            row["display_name"] if row and row["display_name"] else eid[:12]
+        )
+    return names
+
+
+def _extract_attacker_ids(raw: str) -> list[str]:
+    """Extract attacker IDs from JSON column."""
+    try:
+        attackers = json.loads(raw)
+    except Exception:
+        return []
+    ids: list[str] = []
+    for a in attackers:
+        if isinstance(a, str):
+            ids.append(a)
+        else:
+            addr = str(
+                a.get("address") or a.get("characterId") or a.get("id", "")
+            )
+            if addr:
+                ids.append(addr)
+    return ids
+
+
+def get_system_dossier(
+    db: sqlite3.Connection,
+    solar_system_id: str,
+) -> dict:
+    """Full intelligence dossier for a solar system."""
+    # System name from smart_assemblies
+    name_row = db.execute(
+        "SELECT solar_system_name FROM smart_assemblies"
+        " WHERE solar_system_id = ? AND solar_system_name != ''"
+        " LIMIT 1",
+        (solar_system_id,),
+    ).fetchone()
+    system_name = name_row["solar_system_name"] if name_row else ""
+
+    # Kill stats
+    kill_stats = db.execute(
+        """SELECT COUNT(*) as total,
+                  COUNT(DISTINCT victim_character_id) as unique_victims,
+                  MIN(timestamp) as first_kill,
+                  MAX(timestamp) as last_kill
+           FROM killmails WHERE solar_system_id = ?""",
+        (solar_system_id,),
+    ).fetchone()
+
+    total_kills = kill_stats["total"] if kill_stats else 0
+
+    if total_kills == 0:
+        return {
+            "solar_system_id": solar_system_id,
+            "solar_system_name": system_name,
+            "total_kills": 0,
+            "danger_level": "minimal",
+        }
+
+    # Unique attackers
+    attacker_rows = db.execute(
+        "SELECT attacker_character_ids FROM killmails"
+        " WHERE solar_system_id = ?",
+        (solar_system_id,),
+    ).fetchall()
+    all_attackers: set[str] = set()
+    attacker_kill_count: dict[str, int] = {}
+    for ar in attacker_rows:
+        ids = _extract_attacker_ids(ar["attacker_character_ids"])
+        all_attackers.update(ids)
+        for aid in ids:
+            attacker_kill_count[aid] = attacker_kill_count.get(aid, 0) + 1
+
+    # Top attackers (most kills in system)
+    top_attackers = sorted(
+        attacker_kill_count.items(), key=lambda x: x[1], reverse=True
+    )[:5]
+
+    # Top victims (most deaths in system)
+    top_victims = db.execute(
+        """SELECT victim_character_id, COUNT(*) as deaths
+           FROM killmails WHERE solar_system_id = ?
+           AND victim_character_id != ''
+           GROUP BY victim_character_id
+           ORDER BY deaths DESC LIMIT 5""",
+        (solar_system_id,),
+    ).fetchall()
+
+    # Resolve names for top entities
+    name_ids: set[str] = set()
+    for aid, _ in top_attackers:
+        name_ids.add(aid)
+    for row in top_victims:
+        name_ids.add(row["victim_character_id"])
+    names = _resolve_names(db, name_ids)
+
+    # Hour distribution
+    hour_rows = db.execute(
+        """SELECT (timestamp % 86400) / 3600 as hour, COUNT(*) as cnt
+           FROM killmails WHERE solar_system_id = ?
+           GROUP BY hour ORDER BY hour""",
+        (solar_system_id,),
+    ).fetchall()
+    hour_dist = {row["hour"]: row["cnt"] for row in hour_rows}
+
+    # Gate transit count
+    transit_row = db.execute(
+        "SELECT COUNT(*) as cnt FROM gate_events"
+        " WHERE solar_system_id = ?",
+        (solar_system_id,),
+    ).fetchone()
+    gate_transits = transit_row["cnt"] if transit_row else 0
+
+    # Infrastructure
+    assemblies = db.execute(
+        """SELECT assembly_id, assembly_type, state, owner_address,
+                  solar_system_name
+           FROM smart_assemblies WHERE solar_system_id = ?""",
+        (solar_system_id,),
+    ).fetchall()
+
+    # Recent stories mentioning this system
+    story_filter = system_name if system_name else solar_system_id[:12]
+    stories = db.execute(
+        """SELECT id, event_type, headline, body, severity, timestamp
+           FROM story_feed
+           WHERE headline LIKE ? OR body LIKE ?
+           ORDER BY timestamp DESC LIMIT 10""",
+        (f"%{story_filter}%", f"%{story_filter}%"),
+    ).fetchall()
+
+    # Kills in last 24h vs 7d
+    now = int(time.time())
+    kills_24h = db.execute(
+        "SELECT COUNT(*) as cnt FROM killmails"
+        " WHERE solar_system_id = ? AND timestamp >= ?",
+        (solar_system_id, now - 86400),
+    ).fetchone()
+    kills_7d = db.execute(
+        "SELECT COUNT(*) as cnt FROM killmails"
+        " WHERE solar_system_id = ? AND timestamp >= ?",
+        (solar_system_id, now - 7 * 86400),
+    ).fetchone()
+
+    return {
+        "solar_system_id": solar_system_id,
+        "solar_system_name": system_name,
+        "total_kills": total_kills,
+        "unique_victims": kill_stats["unique_victims"],
+        "unique_attackers": len(all_attackers),
+        "first_kill": kill_stats["first_kill"],
+        "last_kill": kill_stats["last_kill"],
+        "kills_24h": kills_24h["cnt"] if kills_24h else 0,
+        "kills_7d": kills_7d["cnt"] if kills_7d else 0,
+        "gate_transits": gate_transits,
+        "danger_level": _danger_level(total_kills),
+        "hour_distribution": hour_dist,
+        "top_attackers": [
+            {
+                "entity_id": aid,
+                "display_name": names.get(aid, aid[:12]),
+                "kills": cnt,
+            }
+            for aid, cnt in top_attackers
+        ],
+        "top_victims": [
+            {
+                "entity_id": r["victim_character_id"],
+                "display_name": names.get(
+                    r["victim_character_id"],
+                    r["victim_character_id"][:12],
+                ),
+                "deaths": r["deaths"],
+            }
+            for r in top_victims
+        ],
+        "infrastructure": [
+            {
+                "assembly_id": a["assembly_id"],
+                "type": a["assembly_type"],
+                "state": a["state"],
+                "owner": a["owner_address"],
+            }
+            for a in assemblies
+        ],
+        "recent_stories": [dict(s) for s in stories],
+    }

@@ -16,7 +16,7 @@ from backend.analysis.corp_intel import (
 )
 from backend.analysis.entity_resolver import resolve_entity
 from backend.analysis.fingerprint import build_fingerprint, compare_fingerprints
-from backend.analysis.hotzones import get_hotzones, get_system_activity
+from backend.analysis.hotzones import get_hotzones, get_system_activity, get_system_dossier
 from backend.analysis.kill_graph import build_kill_graph
 from backend.analysis.narrative import generate_battle_report, generate_dossier_narrative
 from backend.analysis.reputation import compute_reputation
@@ -271,7 +271,27 @@ async def search_entities(
            ORDER BY event_count DESC LIMIT ?""",
         (pattern, pattern, pattern, limit),
     ).fetchall()
-    return {"query": q, "results": [dict(r) for r in rows]}
+    results = [dict(r) for r in rows]
+
+    # Also search solar systems (from smart_assemblies)
+    sys_rows = db.execute(
+        """SELECT solar_system_id, solar_system_name,
+                  COUNT(*) as assembly_count
+           FROM smart_assemblies
+           WHERE solar_system_name LIKE ? AND solar_system_name != ''
+           GROUP BY solar_system_id
+           ORDER BY assembly_count DESC LIMIT 5""",
+        (pattern,),
+    ).fetchall()
+    for sr in sys_rows:
+        results.append({
+            "entity_id": sr["solar_system_id"],
+            "entity_type": "system",
+            "display_name": sr["solar_system_name"],
+            "event_count": sr["assembly_count"],
+        })
+
+    return {"query": q, "results": results}
 
 
 @router.get("/entity/{entity_id}/fingerprint")
@@ -344,6 +364,13 @@ async def get_system_detail(solar_system_id: str):
     """Detailed kill activity for a specific system."""
     db = get_db()
     return get_system_activity(db, solar_system_id)
+
+
+@router.get("/system/{solar_system_id}")
+async def get_system_dossier_endpoint(solar_system_id: str):
+    """Full intelligence dossier for a solar system."""
+    db = get_db()
+    return get_system_dossier(db, solar_system_id)
 
 
 @router.get("/entity/{entity_id}/streak")

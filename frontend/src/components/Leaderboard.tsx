@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { api } from '../api';
 
 interface Entry {
@@ -20,7 +21,8 @@ interface Props {
 }
 
 export function Leaderboard({ onSelect }: Props) {
-  const [category, setCategory] = useState('most_active_gates');
+  const navigate = useNavigate();
+  const [category, setCategory] = useState('top_killers');
   const [entries, setEntries] = useState<Entry[]>([]);
 
   useEffect(() => {
@@ -29,7 +31,7 @@ export function Leaderboard({ onSelect }: Props) {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs uppercase tracking-wider text-[var(--eve-orange)] font-bold">
+      <h3 className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--eve-orange)] font-bold">
         Leaderboard
       </h3>
       <div className="flex gap-1 flex-wrap">
@@ -51,14 +53,16 @@ export function Leaderboard({ onSelect }: Props) {
         {entries.slice(0, 10).map((e, i) => (
           <button
             key={e.entity_id}
-            onClick={() => onSelect(e.entity_id)}
+            onClick={() => { onSelect(e.entity_id); navigate(`/entity/${e.entity_id}`); }}
             className="w-full flex justify-between items-center px-3 py-1.5 rounded hover:bg-[var(--eve-border)] text-sm text-left"
           >
             <span>
-              <span className="text-[var(--eve-dim)] w-6 inline-block">{i + 1}.</span>
-              {e.display_name || e.entity_id.slice(0, 16)}
+              <span className="text-[var(--eve-dim)] font-mono w-6 inline-block">{i + 1}.</span>
+              <span className="text-[var(--eve-green)]">
+                {e.display_name || e.entity_id.slice(0, 16)}
+              </span>
             </span>
-            <span className="text-[var(--eve-green)] font-mono">{e.score}</span>
+            <span className="text-[var(--eve-orange)] font-mono font-bold">{e.score}</span>
           </button>
         ))}
       </div>

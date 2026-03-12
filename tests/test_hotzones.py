@@ -6,7 +6,12 @@ import time
 
 import pytest
 
-from backend.analysis.hotzones import _danger_level, get_hotzones, get_system_activity
+from backend.analysis.hotzones import (
+    _danger_level,
+    get_hotzones,
+    get_system_activity,
+    get_system_dossier,
+)
 from backend.db.database import SCHEMA
 
 
@@ -126,3 +131,42 @@ def test_danger_level():
 def test_limit(db):
     result = get_hotzones(db, window="all", limit=1)
     assert len(result) == 1
+
+
+def test_system_dossier(db):
+    """System dossier returns full intelligence profile."""
+    result = get_system_dossier(db, "sys-A")
+    assert result["solar_system_id"] == "sys-A"
+    assert result["solar_system_name"] == "Alpha System"
+    assert result["total_kills"] == 15
+    assert result["unique_victims"] == 5
+    assert result["unique_attackers"] == 3
+    assert result["danger_level"] == "moderate"
+    assert len(result["top_attackers"]) > 0
+    assert len(result["top_victims"]) > 0
+    assert "hour_distribution" in result
+    assert result["first_kill"] is not None
+    assert result["last_kill"] is not None
+    # Infrastructure
+    assert len(result["infrastructure"]) == 1
+    assert result["infrastructure"][0]["type"] is None  # no type set in fixture
+
+
+def test_system_dossier_empty(db):
+    """System dossier for unknown system returns minimal data."""
+    result = get_system_dossier(db, "nonexistent")
+    assert result["total_kills"] == 0
+    assert result["danger_level"] == "minimal"
+
+
+def test_system_dossier_attackers_resolved(db):
+    """Top attacker names are resolved."""
+    # Add entity records for name resolution
+    db.execute(
+        "INSERT INTO entities (entity_id, entity_type, display_name,"
+        " event_count) VALUES ('attacker-0', 'character', 'Alpha', 5)"
+    )
+    db.commit()
+    result = get_system_dossier(db, "sys-A")
+    attacker_names = [a["display_name"] for a in result["top_attackers"]]
+    assert "Alpha" in attacker_names

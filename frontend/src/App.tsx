@@ -29,6 +29,8 @@ import { VoidScanFeed } from './components/VoidScanFeed';
 import { CloneStatus } from './components/CloneStatus';
 import { CrownRoster } from './components/CrownRoster';
 import { AdminAnalytics } from './components/AdminAnalytics';
+import { SystemDossier } from './components/SystemDossier';
+import { TitleCard } from './components/TitleCard';
 import { useAuth } from './contexts/AuthContext';
 
 type Tab = 'intel' | 'tactical' | 'c5' | 'compare' | 'feed' | 'account' | 'admin';
@@ -202,13 +204,28 @@ function Dashboard() {
             </>
           )}
           {!fingerprint && !loading && !error && (
-            <div className="text-center py-16 space-y-4">
-              <div className="text-4xl text-[var(--eve-green)] pulse-green">///</div>
-              <div className="text-[var(--eve-dim)]">
-                Search for an entity to view their behavioral fingerprint.
+            <div className="space-y-6">
+              <div className="text-center py-8 space-y-3">
+                <div className="text-4xl text-[var(--eve-green)] pulse-green">///</div>
+                <div className="font-mono text-sm text-[var(--eve-text)]">
+                  THE LIVING MEMORY OF EVE FRONTIER
+                </div>
+                <div className="text-xs text-[var(--eve-dim)] max-w-md mx-auto">
+                  Search for an entity or system to view their intelligence dossier.
+                  Every action on the blockchain leaves a trace. WatchTower reads them all.
+                </div>
               </div>
-              <div className="text-xs text-[var(--eve-dim)]">
-                Try "Asterix" or "Kali" to see the deadliest pilots on the frontier.
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ErrorBoundary>
+                  <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-4">
+                    <StoryFeed />
+                  </div>
+                </ErrorBoundary>
+                <ErrorBoundary>
+                  <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-4">
+                    <HotzoneMap />
+                  </div>
+                </ErrorBoundary>
               </div>
             </div>
           )}
@@ -333,6 +350,16 @@ export default function App() {
           <Route path="/entity/:entityId" element={
             <ErrorBoundary>
               <EntityPage />
+            </ErrorBoundary>
+          } />
+          <Route path="/system/:systemId" element={
+            <ErrorBoundary>
+              <SystemDossier />
+            </ErrorBoundary>
+          } />
+          <Route path="/title/:entityId/:title" element={
+            <ErrorBoundary>
+              <TitleCard />
             </ErrorBoundary>
           } />
           <Route path="*" element={<Dashboard />} />

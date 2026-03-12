@@ -92,16 +92,18 @@ export function EntityPage() {
             </span>
           </h2>
 
-          {/* Earned titles */}
+          {/* Earned titles — click to share */}
           {titles.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-1.5">
               {titles.map((title) => (
-                <span
+                <button
                   key={title}
-                  className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-[var(--eve-orange)]/15 text-[var(--eve-orange)] border border-[var(--eve-orange)]/30"
+                  onClick={() => navigate(`/title/${entityId}/${encodeURIComponent(title)}`)}
+                  className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-[var(--eve-orange)]/15 text-[var(--eve-orange)] border border-[var(--eve-orange)]/30 hover:bg-[var(--eve-orange)]/25 transition-colors cursor-pointer"
+                  title="Click to view shareable title card"
                 >
                   {title}
-                </span>
+                </button>
               ))}
             </div>
           )}

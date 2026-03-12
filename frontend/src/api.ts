@@ -351,6 +351,25 @@ export interface CrownRoster {
   uncrowned: number;
 }
 
+export interface SystemDossier {
+  solar_system_id: string;
+  solar_system_name: string;
+  total_kills: number;
+  unique_victims?: number;
+  unique_attackers?: number;
+  first_kill?: number;
+  last_kill?: number;
+  kills_24h?: number;
+  kills_7d?: number;
+  gate_transits?: number;
+  danger_level: string;
+  hour_distribution?: Record<number, number>;
+  top_attackers?: { entity_id: string; display_name: string; kills: number }[];
+  top_victims?: { entity_id: string; display_name: string; deaths: number }[];
+  infrastructure?: { assembly_id: string; type: string; state: string; owner: string }[];
+  recent_stories?: { id: number; event_type: string; headline: string; severity: string; timestamp: number }[];
+}
+
 export interface AnalyticsData {
   timestamp: number;
   totals: {
@@ -469,4 +488,8 @@ export const api = {
     fetchJson<CycleEnvelope<CrownRoster>>(
       `/crowns/roster${corpId ? `?corp_id=${corpId}` : ''}`
     ),
+
+  // System dossier
+  systemDossier: (systemId: string) =>
+    fetchJson<SystemDossier>(`/system/${systemId}`),
 };
