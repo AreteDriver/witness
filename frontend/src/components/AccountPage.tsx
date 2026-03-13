@@ -96,7 +96,7 @@ export function AccountPage() {
         setTxError('Invalid tier');
         return;
       }
-      const price = freshData.tiers[tierKey].sui_mist;
+      const price = BigInt(freshData.tiers[tierKey].sui_mist);
 
       const tx = new Transaction();
       const [coin] = tx.splitCoins(tx.gas, [price]);
