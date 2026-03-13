@@ -123,8 +123,7 @@ async def bootstrap_system_names(client: httpx.AsyncClient) -> int:
             name = sys.get("name", "")
             if sys_id and name:
                 db.execute(
-                    "INSERT OR IGNORE INTO solar_systems (solar_system_id, name) "
-                    "VALUES (?, ?)",
+                    "INSERT OR IGNORE INTO solar_systems (solar_system_id, name) VALUES (?, ?)",
                     (sys_id, name),
                 )
         db.commit()
@@ -946,9 +945,7 @@ async def run_poller() -> None:
     Primary data source: Sui GraphQL (killmails, characters, assemblies, gate jumps).
     Fallback: World API for static/reference data (tribes, C5 endpoints).
     """
-    logger.info(
-        "Poller starting — Sui GraphQL primary, World API fallback for static data"
-    )
+    logger.info("Poller starting — Sui GraphQL primary, World API fallback for static data")
     sui = SuiGraphQLPoller()
     cycle_counter = 0
     reset_checked = False
@@ -970,10 +967,8 @@ async def run_poller() -> None:
                 assembly_task = sui.poll_assemblies(client)
                 jump_task = sui.poll_gate_jumps(client)
                 location_task = sui.poll_locations(client)
-                raw_kills, raw_assemblies, raw_jumps, raw_locations = (
-                    await asyncio.gather(
-                        kill_task, assembly_task, jump_task, location_task
-                    )
+                raw_kills, raw_assemblies, raw_jumps, raw_locations = await asyncio.gather(
+                    kill_task, assembly_task, jump_task, location_task
                 )
 
                 db = get_db()

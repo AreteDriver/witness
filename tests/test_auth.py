@@ -11,12 +11,12 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
 
 from backend.api.auth import (
+    PERSONAL_MESSAGE_INTENT,
+    SCHEME_ED25519,
     _derive_sui_address,
     _encode_uleb128,
     _pending_challenges,
     _verify_sui_signature,
-    PERSONAL_MESSAGE_INTENT,
-    SCHEME_ED25519,
 )
 from backend.db.database import SCHEMA
 

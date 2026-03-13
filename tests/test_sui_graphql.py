@@ -15,7 +15,6 @@ from backend.ingestion.sui_graphql import (
     transform_killmails,
 )
 
-
 # --- Helpers ---
 
 
@@ -63,9 +62,7 @@ SAMPLE_KILLMAIL_EVENT = {
             "solar_system_id": {"item_id": "30013496", "tenant": "stillness"},
         }
     },
-    "sender": {
-        "address": "0x59714bcd14f03bd20794bd3b5a2a52a0045e75e1bc9cc78aada8c56847e5731c"
-    },
+    "sender": {"address": "0x59714bcd14f03bd20794bd3b5a2a52a0045e75e1bc9cc78aada8c56847e5731c"},
     "timestamp": "2026-03-12T18:56:26.699Z",
     "sequenceNumber": 0,
 }
@@ -138,9 +135,7 @@ SAMPLE_ASSEMBLY_EVENT = {
             "type_id": "91978",
         }
     },
-    "sender": {
-        "address": "0xabc123"
-    },
+    "sender": {"address": "0xabc123"},
     "timestamp": "2026-03-11T18:44:11.313Z",
 }
 
@@ -214,9 +209,7 @@ async def test_poller_poll_killmails(monkeypatch):
     async def mock_fetch(client, event_type, max_pages=10, page_size=50, after_cursor=None):
         return [SAMPLE_KILLMAIL_EVENT], "cursor123"
 
-    monkeypatch.setattr(
-        "backend.ingestion.sui_graphql.fetch_events", mock_fetch
-    )
+    monkeypatch.setattr("backend.ingestion.sui_graphql.fetch_events", mock_fetch)
 
     import httpx
 
@@ -235,9 +228,7 @@ async def test_poller_poll_characters(monkeypatch):
     async def mock_fetch(client, event_type, max_pages=10, page_size=50, after_cursor=None):
         return [SAMPLE_CHARACTER_EVENT], "char_cursor"
 
-    monkeypatch.setattr(
-        "backend.ingestion.sui_graphql.fetch_events", mock_fetch
-    )
+    monkeypatch.setattr("backend.ingestion.sui_graphql.fetch_events", mock_fetch)
 
     import httpx
 
@@ -261,9 +252,7 @@ async def test_poller_cursor_persists(monkeypatch):
         captured_cursors.append(after_cursor)
         return [], "new_cursor"
 
-    monkeypatch.setattr(
-        "backend.ingestion.sui_graphql.fetch_events", mock_fetch
-    )
+    monkeypatch.setattr("backend.ingestion.sui_graphql.fetch_events", mock_fetch)
 
     import httpx
 
@@ -299,8 +288,9 @@ SAMPLE_CHARACTER_OBJECT = {
 @pytest.mark.asyncio
 async def test_fetch_all_character_names(monkeypatch):
     """Test bulk character name resolution from Sui objects."""
-    import httpx
     from unittest.mock import AsyncMock, MagicMock
+
+    import httpx
 
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -321,7 +311,10 @@ async def test_fetch_all_character_names(monkeypatch):
 
     assert len(results) == 1
     assert results[0]["name"] == "Bhal Jhor"
-    assert results[0]["address"] == "0xc4b7d17877d2d6c64423e90a6df24a1a5445d0bf0415a263eb97e069c3120946"
+    assert (
+        results[0]["address"]
+        == "0xc4b7d17877d2d6c64423e90a6df24a1a5445d0bf0415a263eb97e069c3120946"
+    )
     assert results[0]["id"] == "2112077429"
     assert results[0]["_tribe_id"] == 1000167
 

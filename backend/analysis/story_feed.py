@@ -199,10 +199,7 @@ def detect_new_entities(db, lookback_seconds: int = 3600) -> int:
                     f"flying under {corp_name}"
                 )
             else:
-                headline = (
-                    f"{name} emerged from the void — "
-                    "first on-chain signature detected"
-                )
+                headline = f"{name} emerged from the void — first on-chain signature detected"
 
             body = "No prior behavioral record. Dossier initialized."
 
@@ -263,10 +260,7 @@ def detect_title_changes(db) -> int:
         entity_type = t["entity_type"].title()
         title = t["title"]
 
-        headline = (
-            f'{name} earned the title "{title}" — '
-            "pattern confirmed from chain behavior"
-        )
+        headline = f'{name} earned the title "{title}" — pattern confirmed from chain behavior'
         body = (
             f"{entity_type} designation. "
             "Title derived from on-chain activity analysis, not self-assigned."
@@ -425,10 +419,7 @@ def generate_historical_feed() -> int:
     ).fetchall()
     for d in top_deaths:
         name = d["display_name"] or d["entity_id"][:16]
-        headline = (
-            f"{name} has fallen {d['death_count']} times — "
-            "the chain remembers every loss"
-        )
+        headline = f"{name} has fallen {d['death_count']} times — the chain remembers every loss"
         body = (
             "Persistent presence despite repeated destruction. "
             "Behavioral pattern suggests high-risk operations."

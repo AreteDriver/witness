@@ -99,6 +99,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "https://watchtower-evefrontier.fly.dev",
         "https://watchtower-evefrontier.vercel.app",
+        "https://thewatchtower.xyz",
     ],
     allow_credentials=False,
     allow_methods=["GET", "POST", "DELETE"],
@@ -107,7 +108,7 @@ app.add_middleware(
         "Authorization",
         "X-Wallet-Address",
         "X-Session",
-        "X-EVE-Session",
+        "X-Session-Token",
     ],
 )
 

@@ -562,9 +562,7 @@ def test_admin_analytics_ai_usage(test_db, client):
     test_db.commit()
 
     with patch("backend.api.routes.is_admin_wallet", return_value=True):
-        r = client.get(
-            "/api/admin/analytics", headers={"X-Wallet-Address": "admin"}
-        )
+        r = client.get("/api/admin/analytics", headers={"X-Wallet-Address": "admin"})
     assert r.status_code == 200
     data = r.json()
     ai = data["ai_usage"]

@@ -292,12 +292,14 @@ async def search_entities(
             (pattern,),
         ).fetchall()
     for sr in sys_rows:
-        results.append({
-            "entity_id": sr["solar_system_id"],
-            "entity_type": "system",
-            "display_name": sr["solar_system_name"],
-            "event_count": 0,
-        })
+        results.append(
+            {
+                "entity_id": sr["solar_system_id"],
+                "entity_type": "system",
+                "display_name": sr["solar_system_name"],
+                "event_count": 0,
+            }
+        )
 
     return {"query": q, "results": results}
 
@@ -453,9 +455,7 @@ async def get_subscription(wallet_address: str):
         try:
             ends = date.fromisoformat(settings.HACKATHON_ENDS)
             if date.today() <= ends:
-                expires_ts = int(
-                    datetime.combine(ends, datetime.min.time(), UTC).timestamp()
-                )
+                expires_ts = int(datetime.combine(ends, datetime.min.time(), UTC).timestamp())
                 return {
                     "wallet": wallet_address,
                     "tier": 3,
@@ -563,9 +563,9 @@ async def get_admin_analytics(request: Request):
     gate_event_count = db.execute("SELECT COUNT(*) as cnt FROM gate_events").fetchone()["cnt"]
     title_count = db.execute("SELECT COUNT(*) as cnt FROM entity_titles").fetchone()["cnt"]
     story_count = db.execute("SELECT COUNT(*) as cnt FROM story_feed").fetchone()["cnt"]
-    watch_count = db.execute(
-        "SELECT COUNT(*) as cnt FROM watches WHERE active = 1"
-    ).fetchone()["cnt"]
+    watch_count = db.execute("SELECT COUNT(*) as cnt FROM watches WHERE active = 1").fetchone()[
+        "cnt"
+    ]
 
     # Activity (24h / 7d)
     kills_24h = db.execute(

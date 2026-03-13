@@ -653,7 +653,10 @@ async def test_run_poller_one_iteration():
                                 "key": {"item_id": "km-poll", "tenant": "stillness"},
                                 "killer_id": {"item_id": "killer-1", "tenant": "stillness"},
                                 "victim_id": {"item_id": "victim-1", "tenant": "stillness"},
-                                "reported_by_character_id": {"item_id": "killer-1", "tenant": "stillness"},
+                                "reported_by_character_id": {
+                                    "item_id": "killer-1",
+                                    "tenant": "stillness",
+                                },
                                 "loss_type": {"@variant": "STRUCTURE"},
                                 "kill_timestamp": "1000",
                                 "solar_system_id": {"item_id": "30013496", "tenant": "stillness"},

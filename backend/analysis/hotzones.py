@@ -185,9 +185,7 @@ def _resolve_names(
             "SELECT display_name FROM entities WHERE entity_id = ?",
             (eid,),
         ).fetchone()
-        names[eid] = (
-            row["display_name"] if row and row["display_name"] else eid[:12]
-        )
+        names[eid] = row["display_name"] if row and row["display_name"] else eid[:12]
     return names
 
 
@@ -202,9 +200,7 @@ def _extract_attacker_ids(raw: str) -> list[str]:
         if isinstance(a, str):
             ids.append(a)
         else:
-            addr = str(
-                a.get("address") or a.get("characterId") or a.get("id", "")
-            )
+            addr = str(a.get("address") or a.get("characterId") or a.get("id", ""))
             if addr:
                 ids.append(addr)
     return ids
@@ -251,8 +247,7 @@ def get_system_dossier(
 
     # Unique attackers
     attacker_rows = db.execute(
-        "SELECT attacker_character_ids FROM killmails"
-        " WHERE solar_system_id = ?",
+        "SELECT attacker_character_ids FROM killmails WHERE solar_system_id = ?",
         (solar_system_id,),
     ).fetchall()
     all_attackers: set[str] = set()
@@ -264,9 +259,7 @@ def get_system_dossier(
             attacker_kill_count[aid] = attacker_kill_count.get(aid, 0) + 1
 
     # Top attackers (most kills in system)
-    top_attackers = sorted(
-        attacker_kill_count.items(), key=lambda x: x[1], reverse=True
-    )[:5]
+    top_attackers = sorted(attacker_kill_count.items(), key=lambda x: x[1], reverse=True)[:5]
 
     # Top victims (most deaths in system)
     top_victims = db.execute(
@@ -297,8 +290,7 @@ def get_system_dossier(
 
     # Gate transit count
     transit_row = db.execute(
-        "SELECT COUNT(*) as cnt FROM gate_events"
-        " WHERE solar_system_id = ?",
+        "SELECT COUNT(*) as cnt FROM gate_events WHERE solar_system_id = ?",
         (solar_system_id,),
     ).fetchone()
     gate_transits = transit_row["cnt"] if transit_row else 0
@@ -324,13 +316,11 @@ def get_system_dossier(
     # Kills in last 24h vs 7d
     now = int(time.time())
     kills_24h = db.execute(
-        "SELECT COUNT(*) as cnt FROM killmails"
-        " WHERE solar_system_id = ? AND timestamp >= ?",
+        "SELECT COUNT(*) as cnt FROM killmails WHERE solar_system_id = ? AND timestamp >= ?",
         (solar_system_id, now - 86400),
     ).fetchone()
     kills_7d = db.execute(
-        "SELECT COUNT(*) as cnt FROM killmails"
-        " WHERE solar_system_id = ? AND timestamp >= ?",
+        "SELECT COUNT(*) as cnt FROM killmails WHERE solar_system_id = ? AND timestamp >= ?",
         (solar_system_id, now - 7 * 86400),
     ).fetchone()
 

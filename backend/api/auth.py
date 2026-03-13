@@ -16,11 +16,10 @@ import base64
 import hashlib
 import re
 import secrets
-import struct
 import time
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
@@ -115,7 +114,7 @@ def _verify_sui_signature(message: bytes, signature_b64: str) -> str:
         ed_key = Ed25519PublicKey.from_public_bytes(public_key)
         ed_key.verify(raw_sig, message_hash)
     except InvalidSignature:
-        raise ValueError("Signature verification failed")
+        raise ValueError("Signature verification failed") from None
     except Exception as e:
         raise ValueError(f"Key/signature error: {e}") from e
 
@@ -209,7 +208,7 @@ async def wallet_connect(body: WalletConnectRequest) -> WalletConnectResponse:
     if not body.message.startswith(prefix):
         raise HTTPException(400, "Invalid challenge message format.")
 
-    nonce = body.message[len(prefix):]
+    nonce = body.message[len(prefix) :]
     if nonce not in _pending_challenges:
         raise HTTPException(400, "Challenge expired or not found. Request a new one.")
 
@@ -229,7 +228,7 @@ async def wallet_connect(body: WalletConnectRequest) -> WalletConnectResponse:
         )
     except ValueError as e:
         logger.warning("Signature verification failed for %s: %s", wallet_address[:16], e)
-        raise HTTPException(401, f"Signature verification failed: {e}")
+        raise HTTPException(401, f"Signature verification failed: {e}") from None
 
     # Confirm derived address matches claimed address
     if derived_address.lower() != wallet_address:

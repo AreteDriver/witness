@@ -19,9 +19,7 @@ logger = get_logger("sui_graphql")
 SUI_GRAPHQL_URL = "https://graphql.testnet.sui.io/graphql"
 
 # Stillness world-contract package ID
-STILLNESS_PKG = (
-    "0x28b497559d65ab320d9da4613bf2498d5946b2c0ae3597ccfda3072ce127448c"
-)
+STILLNESS_PKG = "0x28b497559d65ab320d9da4613bf2498d5946b2c0ae3597ccfda3072ce127448c"
 
 # Event type templates
 EVENT_TYPES = {
@@ -163,21 +161,21 @@ def transform_killmails(events: list[dict]) -> list[dict]:
         killer = {"address": killer_id, "name": "", "characterId": killer_id}
         victim = {"address": victim_id, "name": "", "characterId": victim_id}
 
-        results.append({
-            "id": killmail_id,
-            "killmail_id": killmail_id,
-            "victim": victim,
-            "killer": killer,
-            "attackers": [killer],
-            "solarSystemId": solar_system_id,
-            "timestamp": timestamp,
-            "loss_type": json_data.get("loss_type", {}).get("@variant", ""),
-            "reported_by": _item_id(
-                json_data.get("reported_by_character_id", {})
-            ),
-            "_sui_sender": event.get("sender", {}).get("address", ""),
-            "_sui_timestamp": event.get("timestamp", ""),
-        })
+        results.append(
+            {
+                "id": killmail_id,
+                "killmail_id": killmail_id,
+                "victim": victim,
+                "killer": killer,
+                "attackers": [killer],
+                "solarSystemId": solar_system_id,
+                "timestamp": timestamp,
+                "loss_type": json_data.get("loss_type", {}).get("@variant", ""),
+                "reported_by": _item_id(json_data.get("reported_by_character_id", {})),
+                "_sui_sender": event.get("sender", {}).get("address", ""),
+                "_sui_timestamp": event.get("timestamp", ""),
+            }
+        )
 
     return results
 
@@ -202,13 +200,15 @@ def transform_characters(events: list[dict]) -> list[dict]:
         character_item_id = _item_id(json_data.get("key", {}))
         tribe_id = json_data.get("tribe_id", 0)
 
-        results.append({
-            "address": character_address,
-            "name": "",  # Not available in creation event
-            "id": character_item_id,
-            "_sui_character_id": json_data.get("character_id", ""),
-            "_tribe_id": tribe_id,
-        })
+        results.append(
+            {
+                "address": character_address,
+                "name": "",  # Not available in creation event
+                "id": character_item_id,
+                "_sui_character_id": json_data.get("character_id", ""),
+                "_tribe_id": tribe_id,
+            }
+        )
 
     return results
 
@@ -236,21 +236,23 @@ def transform_assemblies(events: list[dict]) -> list[dict]:
         assembly_item_id = _item_id(json_data.get("assembly_key", {}))
         type_id = json_data.get("type_id", "")
 
-        results.append({
-            "id": assembly_id or assembly_item_id,
-            "type": type_id,
-            "name": "",
-            "state": "online",
-            "solarSystem": {
-                "id": "",
+        results.append(
+            {
+                "id": assembly_id or assembly_item_id,
+                "type": type_id,
                 "name": "",
-                "location": {"x": None, "y": None, "z": None},
-            },
-            "owner": {
-                "address": event.get("sender", {}).get("address", ""),
-                "name": "",
-            },
-        })
+                "state": "online",
+                "solarSystem": {
+                    "id": "",
+                    "name": "",
+                    "location": {"x": None, "y": None, "z": None},
+                },
+                "owner": {
+                    "address": event.get("sender", {}).get("address", ""),
+                    "name": "",
+                },
+            }
+        )
 
     return results
 
@@ -276,21 +278,21 @@ def transform_gate_jumps(events: list[dict]) -> list[dict]:
             continue
 
         gate_id = _item_id(json_data.get("gate_id", json_data.get("key", {})))
-        character_id = _item_id(
-            json_data.get("character_id", json_data.get("jumper_id", {}))
-        )
+        character_id = _item_id(json_data.get("character_id", json_data.get("jumper_id", {})))
         solar_system_id = _item_id(json_data.get("solar_system_id", {}))
         timestamp = _parse_sui_timestamp(event.get("timestamp", ""))
 
-        results.append({
-            "id": gate_id,
-            "name": "",
-            "characterId": character_id,
-            "corporationId": "",
-            "solarSystemId": solar_system_id,
-            "direction": json_data.get("direction", ""),
-            "timestamp": timestamp,
-        })
+        results.append(
+            {
+                "id": gate_id,
+                "name": "",
+                "characterId": character_id,
+                "corporationId": "",
+                "solarSystemId": solar_system_id,
+                "direction": json_data.get("direction", ""),
+                "timestamp": timestamp,
+            }
+        )
 
     return results
 
@@ -314,13 +316,15 @@ def transform_location_reveals(events: list[dict]) -> list[dict]:
         z = json_data.get("z", "")
 
         if assembly_id and solarsystem:
-            results.append({
-                "assembly_id": assembly_id,
-                "solar_system_id": solarsystem,
-                "x": x,
-                "y": y,
-                "z": z,
-            })
+            results.append(
+                {
+                    "assembly_id": assembly_id,
+                    "solar_system_id": solarsystem,
+                    "x": x,
+                    "y": y,
+                    "z": z,
+                }
+            )
 
     return results
 
@@ -391,11 +395,7 @@ async def fetch_all_character_names(
             nodes = objects_data.get("nodes", [])
 
             for node in nodes:
-                contents = (
-                    node.get("asMoveObject", {})
-                    .get("contents", {})
-                    .get("json", {})
-                )
+                contents = node.get("asMoveObject", {}).get("contents", {}).get("json", {})
                 if not contents:
                     continue
 
@@ -407,12 +407,14 @@ async def fetch_all_character_names(
                 character_item_id = _item_id(contents.get("key", {}))
                 tribe_id = contents.get("tribe_id", 0)
 
-                all_chars.append({
-                    "address": character_address,
-                    "name": name,
-                    "id": character_item_id,
-                    "_tribe_id": tribe_id,
-                })
+                all_chars.append(
+                    {
+                        "address": character_address,
+                        "name": name,
+                        "id": character_item_id,
+                        "_tribe_id": tribe_id,
+                    }
+                )
 
             page_info = objects_data.get("pageInfo", {})
             cursor = page_info.get("endCursor")
@@ -420,9 +422,7 @@ async def fetch_all_character_names(
                 break
 
         except httpx.TimeoutException:
-            logger.warning(
-                "Sui character bulk fetch timeout (page %d)", page
-            )
+            logger.warning("Sui character bulk fetch timeout (page %d)", page)
             break
         except Exception as e:
             logger.error("Sui character bulk fetch error: %s", e)
@@ -445,9 +445,7 @@ class SuiGraphQLPoller:
         }
         self.names_bootstrapped = False
 
-    async def poll_killmails(
-        self, client: httpx.AsyncClient
-    ) -> list[dict]:
+    async def poll_killmails(self, client: httpx.AsyncClient) -> list[dict]:
         """Fetch new killmails since last cursor."""
         events, cursor = await fetch_events(
             client,
@@ -458,9 +456,7 @@ class SuiGraphQLPoller:
             self.cursors["killmail"] = cursor
         return transform_killmails(events)
 
-    async def poll_characters(
-        self, client: httpx.AsyncClient
-    ) -> list[dict]:
+    async def poll_characters(self, client: httpx.AsyncClient) -> list[dict]:
         """Fetch new character creation events since last cursor."""
         events, cursor = await fetch_events(
             client,
@@ -471,9 +467,7 @@ class SuiGraphQLPoller:
             self.cursors["character"] = cursor
         return transform_characters(events)
 
-    async def poll_assemblies(
-        self, client: httpx.AsyncClient
-    ) -> list[dict]:
+    async def poll_assemblies(self, client: httpx.AsyncClient) -> list[dict]:
         """Fetch new assembly creation events since last cursor."""
         events, cursor = await fetch_events(
             client,
@@ -484,9 +478,7 @@ class SuiGraphQLPoller:
             self.cursors["assembly"] = cursor
         return transform_assemblies(events)
 
-    async def poll_gate_jumps(
-        self, client: httpx.AsyncClient
-    ) -> list[dict]:
+    async def poll_gate_jumps(self, client: httpx.AsyncClient) -> list[dict]:
         """Fetch new gate jump events since last cursor."""
         events, cursor = await fetch_events(
             client,
@@ -497,9 +489,7 @@ class SuiGraphQLPoller:
             self.cursors["jump"] = cursor
         return transform_gate_jumps(events)
 
-    async def poll_locations(
-        self, client: httpx.AsyncClient
-    ) -> list[dict]:
+    async def poll_locations(self, client: httpx.AsyncClient) -> list[dict]:
         """Fetch new location reveal events since last cursor."""
         events, cursor = await fetch_events(
             client,
@@ -510,9 +500,7 @@ class SuiGraphQLPoller:
             self.cursors["location"] = cursor
         return transform_location_reveals(events)
 
-    async def bootstrap_character_names(
-        self, client: httpx.AsyncClient
-    ) -> list[dict]:
+    async def bootstrap_character_names(self, client: httpx.AsyncClient) -> list[dict]:
         """One-time bulk fetch of all character names from on-chain objects.
 
         Returns smartcharacter-shaped dicts with names populated.
