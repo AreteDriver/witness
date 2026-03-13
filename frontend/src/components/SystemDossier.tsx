@@ -4,16 +4,6 @@ import { api } from '../api';
 import type { SystemDossier as SystemDossierData } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
-const MONOLITH_API = 'https://monolith-evefrontier.fly.dev/api';
-
-interface MonolithAnomaly {
-  anomaly_id: string;
-  anomaly_type: string;
-  severity: string;
-  detected_at: number;
-  evidence?: { description?: string };
-}
-
 const DANGER_COLORS: Record<string, string> = {
   extreme: 'text-[var(--eve-red)]',
   high: 'text-[var(--eve-orange)]',
@@ -28,7 +18,6 @@ export function SystemDossier() {
   const [data, setData] = useState<SystemDossierData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [anomalies, setAnomalies] = useState<MonolithAnomaly[]>([]);
   const [narrative, setNarrative] = useState('');
   const [narrativeLoading, setNarrativeLoading] = useState(false);
   const { subscription } = useAuth();
@@ -41,11 +30,6 @@ export function SystemDossier() {
       .then(setData)
       .catch(() => setError(`System not found: ${systemId}`))
       .finally(() => setLoading(false));
-
-    fetch(`${MONOLITH_API}/anomalies?system_id=${systemId}&limit=10`)
-      .then((r) => r.json())
-      .then((d) => setAnomalies(d.data || []))
-      .catch(() => setAnomalies([]));
   }, [systemId]);
 
   if (!systemId) {

@@ -12,11 +12,7 @@ export interface PricingData {
   sui_usd: number;
   fetched_at: string;
   is_stale: boolean;
-  tiers: {
-    scout: TierPricing;
-    oracle: TierPricing;
-    spymaster: TierPricing;
-  };
+  tiers: Record<string, TierPricing>;
 }
 
 export function usePricing() {
