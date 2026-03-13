@@ -63,6 +63,7 @@ export function AccountPage() {
   const [nexusLoading, setNexusLoading] = useState(false);
   const [nexusSecret, setNexusSecret] = useState<string>('');
   const [showNexusForm, setShowNexusForm] = useState(false);
+  const [nexusExpanded, setNexusExpanded] = useState(false);
   const [nexusName, setNexusName] = useState('');
   const [nexusEndpoint, setNexusEndpoint] = useState('');
   const [nexusFilterTypes, setNexusFilterTypes] = useState('');
@@ -115,9 +116,10 @@ export function AccountPage() {
     }
   };
 
-  // Scroll to #nexus when navigating from NexusCard
+  // Scroll to #nexus when navigating from NexusCard — auto-expand
   useEffect(() => {
     if (location.hash === '#nexus') {
+      setNexusExpanded(true);
       const el = document.getElementById('nexus');
       if (el) {
         setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
@@ -280,13 +282,150 @@ export function AccountPage() {
         </div>
       )}
 
-      {/* Subscribe */}
+      {/* Wallet & Subscription */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Wallet Card */}
+        <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-5 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-bold text-[var(--eve-green)] uppercase tracking-wider">
+              Wallet
+            </h3>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border
+                                 text-[var(--eve-red)] border-[var(--eve-red)]">
+                  Admin
+                </span>
+              )}
+              <span className="w-2 h-2 rounded-full bg-[var(--eve-green)]" />
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Address</div>
+              <div className="text-sm text-[var(--eve-text)] font-mono break-all">{wallet}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Network</div>
+              <div className="text-sm text-[var(--eve-text)]">Sui Testnet</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Status</div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[var(--eve-green)]" />
+                <span className="text-sm text-[var(--eve-text)]">Connected</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={disconnect}
+            className="w-full px-3 py-1.5 text-xs font-bold border border-[var(--eve-red)]
+                       text-[var(--eve-red)] rounded hover:bg-[var(--eve-red)]
+                       hover:text-[var(--eve-bg)] transition-colors"
+          >
+            Disconnect
+          </button>
+        </div>
+
+        {/* Subscription Card */}
+        <div
+          className="bg-[var(--eve-surface)] border rounded-lg p-5 space-y-4"
+          style={{ borderColor: tierLabel.color }}
+        >
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: tierLabel.color }}>
+              Subscription
+            </h3>
+            <span
+              className="text-[10px] font-bold uppercase px-2 py-0.5 rounded border"
+              style={{ color: tierLabel.color, borderColor: tierLabel.color }}
+            >
+              {tierLabel.name}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Tier</div>
+              <div className="text-sm text-[var(--eve-text)]">
+                {tierLabel.name} (Level {currentTier})
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Expires</div>
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-[var(--eve-text)]">
+                  {subscription?.active ? formatExpiry(subscription.expires_at) : 'No active subscription'}
+                </div>
+                {subscription?.active && currentTier >= 1 && (
+                  <button
+                    className="px-3 py-1 text-[10px] font-bold rounded transition-opacity
+                               hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: tierLabel.color, color: 'var(--eve-bg)' }}
+                    disabled={subscribing !== null || pricingLoading || !pricing || pricing.is_stale}
+                    onClick={() => handleSubscribe(currentTier)}
+                  >
+                    {subscribing === currentTier ? 'Confirming...' : 'Renew (1 week)'}
+                  </button>
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Features</div>
+              <ul className="text-xs text-[var(--eve-dim)] space-y-0.5 mt-1">
+                {[0, 1, 2, 3].filter((t) => t <= currentTier).flatMap((t) =>
+                  TIER_FEATURES[t].map((f) => (
+                    <li key={f} className="text-[var(--eve-text)]">+ {f}</li>
+                  ))
+                )}
+              </ul>
+            </div>
+          </div>
+
+          {currentTier < 3 && (
+            <div className="pt-2 border-t border-[var(--eve-border)]">
+              <div className="text-[10px] text-[var(--eve-dim)] uppercase mb-2">Upgrade</div>
+              <p className="text-xs text-[var(--eve-dim)]">
+                Transfer items to a Watcher Assembly to upgrade your tier.
+                Visit any Watcher-equipped Smart Assembly in-game.
+              </p>
+            </div>
+          )}
+
+          <button
+            onClick={refreshSubscription}
+            className="w-full px-3 py-1.5 text-xs font-bold border border-[var(--eve-border)]
+                       text-[var(--eve-dim)] rounded hover:border-[var(--eve-green)]
+                       hover:text-[var(--eve-green)] transition-colors"
+          >
+            Refresh Status
+          </button>
+
+          {currentTier >= 2 && (
+            <button
+              onClick={() => document.getElementById('nexus')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              className="w-full px-3 py-1.5 text-xs font-bold border border-[var(--eve-blue,#3B82F6)]
+                         text-[var(--eve-blue,#3B82F6)] rounded hover:bg-[var(--eve-blue,#3B82F6)]
+                         hover:text-[var(--eve-bg)] transition-colors"
+            >
+              Set Up NEXUS Webhooks
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Subscribe / Upgrade — hidden at max tier */}
+      {currentTier < 3 && (
       <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-5 space-y-4">
         <h3 className="text-sm font-bold text-[var(--eve-green)] uppercase tracking-wider">
-          Subscribe
+          {currentTier > 0 ? 'Upgrade' : 'Subscribe'}
         </h3>
         <p className="text-xs text-[var(--eve-dim)]">
-          Unlock deeper intelligence with a WatchTower subscription. Pay on-chain with SUI or by card.
+          {currentTier > 0
+            ? 'Unlock more intelligence by upgrading your tier. Pay on-chain with SUI or by card.'
+            : 'Unlock deeper intelligence with a WatchTower subscription. Pay on-chain with SUI or by card.'}
         </p>
 
         {/* Stale price warning */}
@@ -336,14 +475,11 @@ export function AccountPage() {
               {txError}
             </div>
           )}
-          {SUBSCRIPTION_TIERS.map((plan) => {
-            const isCurrentOrBelow = plan.tier <= currentTier;
+          {SUBSCRIPTION_TIERS.filter((plan) => plan.tier > currentTier).map((plan) => {
             return (
               <div
                 key={plan.name}
-                className={`relative border rounded-lg p-4 space-y-3 transition-opacity ${
-                  isCurrentOrBelow ? 'opacity-50' : ''
-                }`}
+                className="relative border rounded-lg p-4 space-y-3"
                 style={{ borderColor: plan.color }}
               >
                 {plan.popular && (
@@ -369,75 +505,77 @@ export function AccountPage() {
                     <li key={f}>+ {f}</li>
                   ))}
                 </ul>
-                {isCurrentOrBelow ? (
-                  <div
-                    className="w-full text-center px-3 py-1.5 text-xs font-bold rounded border"
-                    style={{ borderColor: plan.color, color: plan.color }}
-                  >
-                    {plan.tier === currentTier ? 'Current Tier' : 'Included'}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {pricing?.is_stale ? (
-                      <button
-                        className="w-full px-3 py-1.5 text-xs font-bold rounded border
-                                   border-[var(--eve-orange,#FF6600)] text-[var(--eve-orange,#FF6600)]
-                                   hover:bg-[var(--eve-orange,#FF6600)] hover:text-[var(--eve-bg)]
-                                   transition-colors"
-                        onClick={refetchPricing}
-                      >
-                        Refresh Prices
-                      </button>
-                    ) : (
-                      <button
-                        className="w-full px-3 py-1.5 text-xs font-bold rounded transition-opacity
-                                   hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                        style={{ backgroundColor: plan.color, color: 'var(--eve-bg)' }}
-                        disabled={subscribing !== null || pricingLoading || !pricing}
-                        onClick={() => handleSubscribe(plan.tier)}
-                      >
-                        {subscribing === plan.tier ? 'Confirming...' : pricingLoading ? 'Loading...' : 'Pay with SUI'}
-                      </button>
-                    )}
+                <div className="space-y-2">
+                  {pricing?.is_stale ? (
                     <button
                       className="w-full px-3 py-1.5 text-xs font-bold rounded border
-                                 transition-colors hover:text-[var(--eve-text)]"
-                      style={{ borderColor: plan.color, color: 'var(--eve-dim)' }}
-                      onClick={async () => {
-                        try {
-                          const { url } = await api.createCheckout(plan.tier);
-                          window.location.href = url;
-                        } catch {
-                          alert('Failed to start checkout. Please try again.');
-                        }
-                      }}
+                                 border-[var(--eve-orange,#FF6600)] text-[var(--eve-orange,#FF6600)]
+                                 hover:bg-[var(--eve-orange,#FF6600)] hover:text-[var(--eve-bg)]
+                                 transition-colors"
+                      onClick={refetchPricing}
                     >
-                      Pay with Card
+                      Refresh Prices
                     </button>
-                  </div>
-                )}
+                  ) : (
+                    <button
+                      className="w-full px-3 py-1.5 text-xs font-bold rounded transition-opacity
+                                 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                      style={{ backgroundColor: plan.color, color: 'var(--eve-bg)' }}
+                      disabled={subscribing !== null || pricingLoading || !pricing}
+                      onClick={() => handleSubscribe(plan.tier)}
+                    >
+                      {subscribing === plan.tier ? 'Confirming...' : pricingLoading ? 'Loading...' : 'Pay with SUI'}
+                    </button>
+                  )}
+                  <button
+                    className="w-full px-3 py-1.5 text-xs font-bold rounded border
+                               transition-colors hover:text-[var(--eve-text)]"
+                    style={{ borderColor: plan.color, color: 'var(--eve-dim)' }}
+                    onClick={async () => {
+                      try {
+                        const { url } = await api.createCheckout(plan.tier);
+                        window.location.href = url;
+                      } catch {
+                        alert('Failed to start checkout. Please try again.');
+                      }
+                    }}
+                  >
+                    Pay with Card
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
+      )}
 
       {/* NEXUS Subscriptions */}
       <div id="nexus" className="bg-[var(--eve-surface)] border border-[var(--eve-blue,#3B82F6)] rounded-lg p-5 space-y-4">
-        <div className="flex justify-between items-center">
+        <button
+          onClick={() => setNexusExpanded(!nexusExpanded)}
+          className="w-full flex justify-between items-center"
+        >
           <h3 className="text-sm font-bold text-[var(--eve-blue,#3B82F6)] uppercase tracking-wider">
             NEXUS Webhooks
           </h3>
-          <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border
-                           text-[var(--eve-blue,#3B82F6)] border-[var(--eve-blue,#3B82F6)]">
-            Builder API
-          </span>
-        </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border
+                             text-[var(--eve-blue,#3B82F6)] border-[var(--eve-blue,#3B82F6)]">
+              Builder API
+            </span>
+            <span className="text-[var(--eve-blue,#3B82F6)] text-xs">
+              {nexusExpanded ? '\u25B2' : '\u25BC'}
+            </span>
+          </div>
+        </button>
 
         <p className="text-xs text-[var(--eve-dim)]">
           Subscribe to enriched event webhooks. WatchTower POSTs HMAC-signed payloads
           with resolved names, system data, and intelligence when matching events are indexed.
         </p>
+
+        {nexusExpanded && (<>
 
         {/* Quota display */}
         {nexusQuota && (
@@ -705,144 +843,7 @@ export function AccountPage() {
             )}
           </div>
         )}
-      </div>
-
-      {/* Wallet & Subscription */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Wallet Card */}
-        <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-5 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold text-[var(--eve-green)] uppercase tracking-wider">
-              Wallet
-            </h3>
-            <div className="flex items-center gap-2">
-              {isAdmin && (
-                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border
-                                 text-[var(--eve-red)] border-[var(--eve-red)]">
-                  Admin
-                </span>
-              )}
-              <span className="w-2 h-2 rounded-full bg-[var(--eve-green)]" />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Address</div>
-              <div className="text-sm text-[var(--eve-text)] font-mono break-all">{wallet}</div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Network</div>
-              <div className="text-sm text-[var(--eve-text)]">Sui Mainnet</div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Status</div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[var(--eve-green)]" />
-                <span className="text-sm text-[var(--eve-text)]">Connected</span>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={disconnect}
-            className="w-full px-3 py-1.5 text-xs font-bold border border-[var(--eve-red)]
-                       text-[var(--eve-red)] rounded hover:bg-[var(--eve-red)]
-                       hover:text-[var(--eve-bg)] transition-colors"
-          >
-            Disconnect
-          </button>
-        </div>
-
-        {/* Subscription Card */}
-        <div
-          className="bg-[var(--eve-surface)] border rounded-lg p-5 space-y-4"
-          style={{ borderColor: tierLabel.color }}
-        >
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: tierLabel.color }}>
-              Subscription
-            </h3>
-            <span
-              className="text-[10px] font-bold uppercase px-2 py-0.5 rounded border"
-              style={{ color: tierLabel.color, borderColor: tierLabel.color }}
-            >
-              {tierLabel.name}
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Tier</div>
-              <div className="text-sm text-[var(--eve-text)]">
-                {tierLabel.name} (Level {currentTier})
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Expires</div>
-              <div className="flex items-center gap-3">
-                <div className="text-sm text-[var(--eve-text)]">
-                  {subscription?.active ? formatExpiry(subscription.expires_at) : 'No active subscription'}
-                </div>
-                {/* Renew button — calls subscribe() which extends expiry in the Move contract registry.
-                    TODO: Wire true renew(capId, suiMist) once we can query the user's SubscriptionCap
-                    object ID from the frontend (e.g. via Sui GraphQL ownedObjects query). For now,
-                    subscribe() handles both new and renewal cases on-chain. */}
-                {subscription?.active && currentTier >= 1 && (
-                  <button
-                    className="px-3 py-1 text-[10px] font-bold rounded transition-opacity
-                               hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: tierLabel.color, color: 'var(--eve-bg)' }}
-                    disabled={subscribing !== null || pricingLoading || !pricing || pricing.is_stale}
-                    onClick={() => handleSubscribe(currentTier)}
-                  >
-                    {subscribing === currentTier ? 'Confirming...' : 'Renew (1 week)'}
-                  </button>
-                )}
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-[var(--eve-dim)] uppercase">Features</div>
-              <ul className="text-xs text-[var(--eve-dim)] space-y-0.5 mt-1">
-                {[0, 1, 2, 3].filter((t) => t <= currentTier).flatMap((t) =>
-                  TIER_FEATURES[t].map((f) => (
-                    <li key={f} className="text-[var(--eve-text)]">+ {f}</li>
-                  ))
-                )}
-              </ul>
-            </div>
-          </div>
-
-          {currentTier < 3 && (
-            <div className="pt-2 border-t border-[var(--eve-border)]">
-              <div className="text-[10px] text-[var(--eve-dim)] uppercase mb-2">Upgrade</div>
-              <p className="text-xs text-[var(--eve-dim)]">
-                Transfer items to a Watcher Assembly to upgrade your tier.
-                Visit any Watcher-equipped Smart Assembly in-game.
-              </p>
-            </div>
-          )}
-
-          <button
-            onClick={refreshSubscription}
-            className="w-full px-3 py-1.5 text-xs font-bold border border-[var(--eve-border)]
-                       text-[var(--eve-dim)] rounded hover:border-[var(--eve-green)]
-                       hover:text-[var(--eve-green)] transition-colors"
-          >
-            Refresh Status
-          </button>
-
-          {currentTier >= 2 && (
-            <button
-              onClick={() => document.getElementById('nexus')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-              className="w-full px-3 py-1.5 text-xs font-bold border border-[var(--eve-blue,#3B82F6)]
-                         text-[var(--eve-blue,#3B82F6)] rounded hover:bg-[var(--eve-blue,#3B82F6)]
-                         hover:text-[var(--eve-bg)] transition-colors"
-            >
-              Set Up NEXUS Webhooks
-            </button>
-          )}
-        </div>
+        </>)}
       </div>
 
       {/* Alerts */}
@@ -944,42 +945,6 @@ export function AccountPage() {
         )}
       </div>
 
-      {/* Tier Comparison */}
-      <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-5 space-y-4">
-        <h3 className="text-sm font-bold text-[var(--eve-green)] uppercase tracking-wider">
-          Tier Comparison
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[0, 1, 2, 3].map((tier) => {
-            const label = TIER_LABELS[tier];
-            const isActive = tier <= currentTier;
-            return (
-              <div
-                key={tier}
-                className={`border rounded-lg p-3 space-y-2 transition-opacity ${
-                  isActive ? 'opacity-100' : 'opacity-40'
-                }`}
-                style={{ borderColor: isActive ? label.color : 'var(--eve-border)' }}
-              >
-                <div
-                  className="text-[10px] font-bold uppercase"
-                  style={{ color: label.color }}
-                >
-                  {label.name}
-                  {tier === currentTier && (
-                    <span className="ml-1 text-[var(--eve-text)]">(current)</span>
-                  )}
-                </div>
-                <ul className="text-[10px] text-[var(--eve-dim)] space-y-0.5">
-                  {TIER_FEATURES[tier].map((f) => (
-                    <li key={f}>{isActive ? '+' : '-'} {f}</li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
