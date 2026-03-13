@@ -18,7 +18,8 @@ Chain archaeology + AI intelligence platform. Reads the blockchain → entity do
 - **AI**: Anthropic API (narrative generation + token usage tracking)
 - **Bot**: Discord webhooks
 - **Deploy**: Fly.io (backend) + Vercel (frontend)
-- **Tests**: 700 passing, 80%+ coverage (pytest)
+- **Tests**: 712 passing (31 test files), 80%+ coverage (pytest)
+- **Codebase**: 217 source files, ~47K lines (Python + TypeScript + Move)
 - **Data sources**: Sui GraphQL (dynamic), World API static (system names)
 
 ### Data Flow
@@ -114,19 +115,19 @@ Key Sui data shapes:
 ```
 witness/
 ├── backend/
-│   ├── analysis/      # fingerprint, hotzones, kill_graph, narrative, reputation, streaks, story_feed, names
-│   ├── api/           # routes, tier_gate, rate_limit, events (SSE)
+│   ├── analysis/      # fingerprint, hotzones, kill_graph, narrative, reputation, streaks, story_feed, names, nexus, oracle, subscriptions, assembly_tracker, c5_analysis, corp_intel, naming_engine
+│   ├── api/           # routes, auth, pricing, stripe_webhook, tier_gate, rate_limit, events (SSE), cycle5
 │   ├── bot/           # discord webhooks
 │   ├── core/          # config, logger
-│   ├── db/            # database schema, migrations
+│   ├── db/            # database schema (SQLite WAL)
 │   ├── ingestion/     # poller (Sui GraphQL → SQLite), sui_graphql adapter
-│   └── warden/        # autonomous threat detection loop
-├── contracts/sui/     # Move reputation oracle
+│   └── warden/        # autonomous threat detection loop + doctrine
+├── contracts/sui/sources/  # Move: subscription, reputation, titles
 ├── frontend/src/
-│   ├── components/    # 28 React components
+│   ├── components/    # 31 React components
 │   ├── contexts/      # AuthContext (wallet)
-│   └── hooks/         # useEventStream (SSE)
-├── tests/             # 659 tests
+│   └── hooks/         # useEventStream (SSE), useSubscribe (Sui tx), usePricing (oracle)
+├── tests/             # 712 tests (31 test files)
 ├── Dockerfile
 ├── fly.toml
 └── frontend/vercel.json
@@ -136,17 +137,87 @@ witness/
 
 | Endpoint | Description |
 |---|---|
+| **Entity Intelligence** | |
 | `GET /entity/{id}` | Full dossier (kills, deaths, titles, danger, tribe) |
 | `GET /entity/{id}/fingerprint` | Behavioral fingerprint (temporal, route, social, threat) |
 | `GET /entity/{id}/reputation` | Trust score with 6-factor breakdown |
 | `GET /entity/{id}/narrative` | AI-generated intelligence narrative |
 | `GET /entity/{id}/streak` | Kill streak and momentum |
+| `GET /entity/{id}/timeline` | Unified timeline of all events (kills + gate transits) |
+| `GET /entities` | Paginated entity list with sort/filter |
+| **System Intelligence** | |
 | `GET /system/{id}` | System-level dossier (top combatants, stories, infrastructure) |
-| `GET /search?q=` | Entity + system search |
-| `GET /feed` | Intel story feed with cursor pagination |
+| `GET /system/{id}/narrative` | AI-generated system narrative |
 | `GET /hotzones` | Kill density by system (24h/7d/30d/all windows) |
+| `GET /hotzones/{solar_system_id}` | Detailed kill activity for a specific system |
+| **Corporation Intelligence** | |
+| `GET /corps` | Corporation leaderboard by combat activity |
+| `GET /corps/rivalries` | Inter-corporation rivalries (mutual kills) |
+| `GET /corp/{corp_id}` | Detailed corporation profile |
+| **Feed & Discovery** | |
+| `GET /feed` | Intel story feed with cursor pagination |
+| `GET /search?q=` | Entity + system search |
 | `GET /kill-graph` | Who-kills-whom graph with vendetta detection |
 | `GET /leaderboard/{category}` | Top killers, most deaths, most traveled, etc. |
+| `GET /titles` | Titled entities ranked by inscription count |
+| `GET /streaks` | Entities currently on kill streaks |
+| **Assemblies** | |
+| `GET /assemblies` | Live Watcher Smart Assembly locations |
+| `GET /assemblies/list` | All Watcher assembly locations |
+| **Payment & Subscription** | |
+| `GET /pricing` | Dynamic SUI/USD pricing for all tiers (CoinGecko/Binance oracle) |
+| `GET /subscription/{wallet}` | Check subscription status for a wallet |
+| `POST /subscribe` | Record subscription (chain event / demo) |
+| `POST /checkout/create` | Create Stripe Checkout Session |
+| `POST /webhooks/stripe` | Stripe webhook handler |
+| **Watches & Alerts** | |
+| `GET /watches` | List active watches for a user |
+| `POST /watches` | Create a watch (SSRF-validated webhook) |
+| `DELETE /watches/{target_id}` | Deactivate a watch |
+| `GET /alerts` | List recent watch alerts |
+| `POST /alerts/{id}/read` | Mark alert as read |
+| **NEXUS (Builder Webhooks)** | |
+| `POST /nexus/subscribe` | Register webhook subscription |
+| `GET /nexus/subscriptions` | List subscriptions by API key |
+| `PUT /nexus/subscriptions/{id}` | Update subscription filters/status |
+| `DELETE /nexus/subscriptions/{id}` | Delete subscription |
+| `GET /nexus/deliveries` | List recent delivery attempts |
+| `GET /nexus/quota` | NEXUS quota usage for wallet |
+| **Auth** | |
+| `POST /auth/wallet/challenge` | Get challenge nonce to sign |
+| `POST /auth/wallet/connect` | Submit signature, get session token |
+| `GET /auth/wallet/me` | Verify current session |
+| `POST /auth/wallet/disconnect` | End session |
+| **Cycle 5** | |
+| `GET /cycle` | Current cycle info |
+| `GET /orbital-zones` | Orbital zone data |
+| `GET /orbital-zones/{id}/history` | Zone history |
+| `GET /orbital-zones/{id}/threat` | Zone threat analysis |
+| `GET /scans` | Void scan data |
+| `GET /scans/feed` | Void scan feed |
+| `GET /clones` | Clone data |
+| `GET /clones/queue` | Clone queue |
+| `GET /crowns` | Crown data |
+| `GET /crowns/roster` | Crown roster |
+| `GET /briefing` | C5 intelligence briefing |
+| **SSE** | |
+| `GET /events` | Server-Sent Events stream |
+| `GET /events/status` | SSE connection status |
+| **Admin** | |
+| `GET /admin/analytics` | Full analytics dashboard (admin wallets only) |
+| `POST /admin/backfill-stories` | Regenerate story feed (admin only) |
+| `POST /battle-report` | Generate AI battle report from events |
+| `GET /health` | Health check with table counts |
+
+### Frontend Components (31)
+
+AccountPage, ActivityHeatmap, AdminAnalytics, AegisEcosystem, AssemblyMap, ChainIntegrity, CloneStatus, CompareView, CorpIntel, CrownRoster, CycleBanner, EntityPage, EntityTimeline, ErrorBoundary, FingerprintCard, HealthBanner, HotzoneMap, KillGraph, Leaderboard, NarrativePanel, NexusCard, OrbitalZones, ReputationBadge, SearchBar, StoryFeed, StreakTracker, SystemDossier, TierGate, TitleCard, VoidScanFeed, WalletConnect
+
+### Frontend Hooks
+
+- `useEventStream` — SSE real-time event stream
+- `useSubscribe` — Sui on-chain subscription via `useSignAndExecuteTransaction`
+- `usePricing` — Dynamic SUI/USD pricing from `/api/pricing` endpoint
 
 ### Frontend Routes
 
@@ -187,7 +258,7 @@ WatchTower's lane is **uncontested on intelligence depth**. Only submission doin
 | Category | Fit | Strategy |
 |---|---|---|
 | Most Creative | **Primary target** | Chain archaeology + earned titles + "living memory" |
-| Best Technical | Strong | Poller, fingerprint engine, AI pipeline, 700 tests |
+| Best Technical | Strong | Poller, fingerprint engine, AI pipeline, 712 tests |
 | Most Utility | Strong | Entity dossiers, reputation API, story feed |
 | Best Live Integration | Clear path | +10% bonus via April 1–15 deploy window |
 
@@ -208,8 +279,28 @@ Discord `#hackathon-build-requests` that WatchTower already answers:
 
 Hybrid SUI + Stripe + LUX payment architecture. Three payment channels funnel into one `watcher_subscriptions` table via `record_subscription()`.
 
-- **Move contract**: `contracts/sui/sources/subscription.move` — `subscribe()` (SUI), `credit_lux_payment()` (LUX via admin), `grant_subscription()` (comp)
+### Pricing Oracle
+
+- **Backend**: `backend/api/pricing.py` — `GET /api/pricing` returns dynamic SUI/USD conversion for all tiers
+- **Price sources**: CoinGecko primary, Binance fallback, hard fallback at $3.00
+- **Caching**: 60s TTL, stale threshold at 5 minutes, `is_stale` flag in response
+- **Frontend**: `usePricing` hook polls `/api/pricing`, displays SUI amounts in payment UI
+- **On-chain sync**: `update_prices()` Move entry function allows admin to push price updates to `SubscriptionConfig`
+
+### Tier Pricing (USD source of truth)
+
+| Tier | USD/week | Move constant |
+|---|---|---|
+| Scout (1) | $4.99 | `price_scout` |
+| Oracle (2) | $9.99 | `price_oracle` |
+| Spymaster (3) | $19.99 | `price_spymaster` |
+
+### Payment Channels
+
+- **Move contract**: `contracts/sui/sources/subscription.move` — `subscribe()` (SUI), `renew()` (extend existing), `credit_lux_payment()` (LUX via admin), `grant_subscription()` (comp), `update_prices()` (oracle)
 - **On-chain payment**: "Pay with SUI" buttons use `useSignAndExecuteTransaction` from dApp kit → `watchtower::subscription::subscribe` entry function
+- **SubscriptionCap**: Owned object minted on purchase — on-chain proof of subscription held in user's wallet, verifiable without backend via `is_active()`
+- **Renewal**: `renew()` extends from current expiry (rewards early renewal), updates both `SubscriptionCap` and registry
 - **Stripe checkout**: `POST /api/checkout/create` creates Stripe Checkout Session → redirects to Stripe → webhook processes payment
 - **Stripe webhook**: `POST /api/webhooks/stripe` — signature verification, tier mapping, `record_subscription()`
 - **DB columns**: `stripe_customer_id`, `stripe_subscription_id`, `payment_channel` on `watcher_subscriptions`
@@ -217,15 +308,26 @@ Hybrid SUI + Stripe + LUX payment architecture. Three payment channels funnel in
 - **Sui subscription events**: polled via `poll_subscriptions()` in poller
 
 ### Sui Contract Objects (Testnet)
+
+**Modules**: `subscription.move`, `reputation.move`, `titles.move`
+
 - Package: `0x3ca7e3af5bf5b072157d02534f5e4013cf11a12b79385c270d97de480e7b7dca`
-- SubscriptionConfig (shared): `0x7bd0e266d3c26665b13c432f70d9b7e5ecc266de993094f8ac8290020283be9d`
-- AdminCap (subscription): `0x5af68eea339255f184218108fa52859a08b572e2f906940bafbed436cbbeaaae`
-- SubscriptionRegistry: `0x4bb5a6999fadd2039b8cfcb7a1b3de0f07973fe0ec74181b024edaaa6069d160`
+- SubscriptionConfig (shared, mutable prices): `0x7bd0e266d3c26665b13c432f70d9b7e5ecc266de993094f8ac8290020283be9d`
+- SubscriptionRegistry (shared): `0x4bb5a6999fadd2039b8cfcb7a1b3de0f07973fe0ec74181b024edaaa6069d160`
+- AdminCap (owned by deployer): `0x5af68eea339255f184218108fa52859a08b572e2f906940bafbed436cbbeaaae`
 - ReputationRegistry: `0xf0cd2f096992dcc5ad532bc79e84332b5a3efe77cb6d46dffc6a9ccbac406e5c`
 - TitleRegistry: `0x66ec6ab2e06c9f84854e643d7142efccada8124465b3b56a959414783cb80219`
 - UpgradeCap: `0x5cce0badb147cba27b633f72f781a978637bb00ae35ddbd188e4ee8b90fc8ab7`
 - TitleOracleCap: `0xaa18e829073dca0154b2b5672faed36043e4168f1b6f8f6a93ebb8810d1133f8`
 - OracleCap (reputation): `0x9f6dfabb32c37b9ce5caf85600613b6cfb17e01b65216d890f4bfe8b5eefbdc7`
+
+**Key contract types**:
+- `SubscriptionConfig` — shared, holds mutable tier prices in MIST. Updated by admin via `update_prices()`
+- `SubscriptionRegistry` — shared, tracks all subscription records + total revenue + treasury address
+- `SubscriptionCap` — owned by subscriber, proof of active subscription (tier + expiry). Verifiable on-chain via `is_active()`
+- `AdminCap` — owned by deployer, required for `update_prices()`, `grant_subscription()`, `credit_lux_payment()`, `update_treasury()`
+
+**Move entry functions**: `subscribe()`, `renew()`, `update_prices()`, `grant_subscription()`, `credit_lux_payment()`, `update_treasury()`, `has_tier()`, `is_active()`, `config_price()`, `get_subscription()`
 
 ---
 
@@ -280,6 +382,36 @@ Full webhook delivery system for builder integrations. Wired into the poller ing
 - **Routes**: CRUD at `/api/nexus/*` (subscribe, list, update, delete, deliveries, quota)
 - **Poller wire**: `dispatch_batch()` called after killmail + gate event ingestion
 - **Quotas**: Tier-based (Oracle: 2 subs/100 day, Spymaster: 10 subs/1K day), hackathon mode grants Spymaster
+
+---
+
+## Environment Variables
+
+All prefixed with `WATCHTOWER_` (pydantic-settings, loaded from `.env`).
+
+| Variable | Default | Description |
+|---|---|---|
+| `WORLD_API_BASE` | `https://blockchain-gateway-stillness...` | Dynamic World API (DEAD — NXDOMAIN) |
+| `WORLD_API_STATIC` | `https://world-api-stillness...` | Static World API (system names) |
+| `POLL_INTERVAL_SECONDS` | `30` | Sui GraphQL poll frequency |
+| `POLL_TIMEOUT_SECONDS` | `10.0` | HTTP timeout for poll requests |
+| `DB_PATH` | `data/watchtower.db` | SQLite database path |
+| `DISCORD_TOKEN` | `""` | Discord bot token |
+| `DISCORD_WEBHOOK_URL` | `""` | Discord webhook for alerts |
+| `STRIPE_SECRET_KEY` | `""` | Stripe API key (USD payments) |
+| `STRIPE_WEBHOOK_SECRET` | `""` | Stripe webhook signature secret |
+| `ANTHROPIC_API_KEY` | `""` | Anthropic API key (AI narratives) |
+| `WATCHER_OWNER_ADDRESS` | `""` | Sui address for assembly tracker |
+| `ADMIN_ADDRESSES` | `""` | Comma-separated admin wallet addresses |
+| `HACKATHON_MODE` | `false` | Grant Spymaster tier to all users |
+| `HACKATHON_ENDS` | `2026-04-01` | Auto-revert date for hackathon mode |
+| `C5_ALERT_SUPPRESS` | `""` | Comma-separated C5 alert types to suppress |
+| `WARDEN_ENABLED` | `true` | Enable autonomous threat detection loop |
+| `WARDEN_MAX_ITERATIONS` | `10` | Max warden iterations per cycle |
+| `WARDEN_MAX_DURATION_HOURS` | `24` | Max warden runtime |
+| `WARDEN_INTERVAL_SECONDS` | `300` | Seconds between warden cycles |
+| `HOST` | `0.0.0.0` | Server bind address |
+| `PORT` | `8000` | Server port |
 
 ---
 
