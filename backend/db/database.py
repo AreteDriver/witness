@@ -311,7 +311,38 @@ CREATE TABLE IF NOT EXISTS ai_usage (
     created_at INTEGER DEFAULT (unixepoch())
 );
 
+-- NEXUS: builder webhook subscriptions
+CREATE TABLE IF NOT EXISTS nexus_subscriptions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    api_key TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    endpoint_url TEXT NOT NULL,
+    filters TEXT NOT NULL DEFAULT '{}',
+    active INTEGER DEFAULT 1,
+    secret TEXT NOT NULL,
+    delivery_count INTEGER DEFAULT 0,
+    last_delivered_at INTEGER,
+    created_at INTEGER DEFAULT (unixepoch())
+);
+
+CREATE TABLE IF NOT EXISTS nexus_deliveries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    subscription_id INTEGER NOT NULL,
+    event_type TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    status_code INTEGER,
+    success INTEGER DEFAULT 0,
+    attempts INTEGER DEFAULT 1,
+    error TEXT,
+    delivered_at INTEGER DEFAULT (unixepoch()),
+    FOREIGN KEY (subscription_id) REFERENCES nexus_subscriptions(id)
+);
+
 -- Indexes
+CREATE INDEX IF NOT EXISTS idx_nexus_subscriptions_active ON nexus_subscriptions(active);
+CREATE INDEX IF NOT EXISTS idx_nexus_subscriptions_key ON nexus_subscriptions(api_key);
+CREATE INDEX IF NOT EXISTS idx_nexus_deliveries_sub
+    ON nexus_deliveries(subscription_id, delivered_at DESC);
 CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_killmails_timestamp ON killmails(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_killmails_system ON killmails(solar_system_id, timestamp DESC);

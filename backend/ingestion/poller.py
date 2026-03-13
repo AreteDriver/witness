@@ -1003,6 +1003,45 @@ async def run_poller() -> None:
                             )
                     except Exception:
                         pass  # SSE is best-effort
+
+                    # NEXUS: dispatch enriched events to builder webhooks
+                    try:
+                        from backend.analysis.nexus import dispatch_batch
+
+                        nexus_events = []
+                        for km in raw_kills:
+                            nexus_events.append(
+                                {
+                                    "event_type": "killmail",
+                                    "killmail_id": km.get("id", ""),
+                                    "victim_character_id": (
+                                        km.get("victim", {}).get("address", "")
+                                    ),
+                                    "attacker_character_ids": json.dumps(
+                                        km.get("attackers", [km.get("killer", {})])
+                                    ),
+                                    "solar_system_id": str(km.get("solarSystemId", "")),
+                                    "timestamp": km.get("timestamp", 0),
+                                    "severity": "critical",
+                                }
+                            )
+                        for jump in raw_jumps:
+                            nexus_events.append(
+                                {
+                                    "event_type": "gate_transit",
+                                    "gate_id": jump.get("id", ""),
+                                    "character_id": str(jump.get("characterId", "")),
+                                    "solar_system_id": str(jump.get("solarSystemId", "")),
+                                    "timestamp": jump.get("timestamp", 0),
+                                    "severity": "info",
+                                }
+                            )
+                        if nexus_events:
+                            nexus_delivered = await dispatch_batch(nexus_events)
+                            if nexus_delivered:
+                                logger.info("NEXUS dispatched %d deliveries", nexus_delivered)
+                    except Exception as e:
+                        logger.error("NEXUS dispatch error (continuing): %s", e)
                 else:
                     db.commit()
 

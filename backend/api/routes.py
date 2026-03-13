@@ -791,3 +791,149 @@ async def mark_alert_read(alert_id: int):
     db.execute("UPDATE watch_alerts SET read = 1 WHERE id = ?", (alert_id,))
     db.commit()
     return {"status": "ok"}
+
+
+# ---------- NEXUS: Builder webhook subscriptions ----------
+
+
+class NexusSubscribeRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    endpoint_url: str = Field(min_length=10, max_length=500)
+    filters: dict = Field(default_factory=dict)
+
+
+def _validate_nexus_endpoint(url: str) -> None:
+    """Validate NEXUS endpoint URL — HTTPS only, no private IPs."""
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise HTTPException(400, "Endpoint URL must use HTTPS.")
+    hostname = parsed.hostname or ""
+    if _PRIVATE_IP_PATTERN.match(hostname):
+        raise HTTPException(400, "Endpoint URL cannot point to private addresses.")
+
+
+@router.post("/nexus/subscribe")
+@limiter.limit("10/minute")
+async def nexus_subscribe(request: Request, req: NexusSubscribeRequest):
+    """Register a NEXUS webhook subscription.
+
+    Returns API key and HMAC secret. Store the secret — it cannot be
+    retrieved again. Use it to verify X-Nexus-Signature on deliveries.
+    """
+    _validate_nexus_endpoint(req.endpoint_url)
+
+    from backend.analysis.nexus import generate_api_key, generate_secret
+
+    api_key = generate_api_key()
+    secret = generate_secret()
+
+    db = get_db()
+    db.execute(
+        """INSERT INTO nexus_subscriptions
+           (api_key, name, endpoint_url, filters, secret)
+           VALUES (?, ?, ?, ?, ?)""",
+        (api_key, req.name, req.endpoint_url, json.dumps(req.filters), secret),
+    )
+    db.commit()
+    logger.info("NEXUS subscription created: %s → %s", req.name, req.endpoint_url)
+
+    return {
+        "status": "subscribed",
+        "api_key": api_key,
+        "secret": secret,
+        "name": req.name,
+        "endpoint_url": req.endpoint_url,
+        "filters": req.filters,
+    }
+
+
+@router.get("/nexus/subscriptions")
+async def nexus_list_subscriptions(
+    api_key: str = Query(..., min_length=1),
+):
+    """List subscriptions for an API key."""
+    db = get_db()
+    rows = db.execute(
+        """SELECT id, name, endpoint_url, filters, active,
+                  delivery_count, last_delivered_at, created_at
+           FROM nexus_subscriptions WHERE api_key = ?
+           ORDER BY created_at DESC""",
+        (api_key,),
+    ).fetchall()
+    subs = []
+    for r in rows:
+        sub = dict(r)
+        try:
+            sub["filters"] = json.loads(sub["filters"]) if sub["filters"] else {}
+        except json.JSONDecodeError:
+            sub["filters"] = {}
+        subs.append(sub)
+    return {"subscriptions": subs}
+
+
+@router.put("/nexus/subscriptions/{sub_id}")
+@limiter.limit("20/minute")
+async def nexus_update_subscription(
+    request: Request,
+    sub_id: int,
+    api_key: str = Query(..., min_length=1),
+    filters: dict | None = None,
+    active: bool | None = None,
+):
+    """Update subscription filters or active status."""
+    db = get_db()
+    sub = db.execute(
+        "SELECT id FROM nexus_subscriptions WHERE id = ? AND api_key = ?",
+        (sub_id, api_key),
+    ).fetchone()
+    if not sub:
+        raise HTTPException(404, "Subscription not found")
+
+    if filters is not None:
+        db.execute(
+            "UPDATE nexus_subscriptions SET filters = ? WHERE id = ?",
+            (json.dumps(filters), sub_id),
+        )
+    if active is not None:
+        db.execute(
+            "UPDATE nexus_subscriptions SET active = ? WHERE id = ?",
+            (1 if active else 0, sub_id),
+        )
+    db.commit()
+    return {"status": "updated", "id": sub_id}
+
+
+@router.delete("/nexus/subscriptions/{sub_id}")
+async def nexus_delete_subscription(
+    sub_id: int,
+    api_key: str = Query(..., min_length=1),
+):
+    """Delete a NEXUS subscription."""
+    db = get_db()
+    result = db.execute(
+        "DELETE FROM nexus_subscriptions WHERE id = ? AND api_key = ?",
+        (sub_id, api_key),
+    )
+    db.commit()
+    if result.rowcount == 0:
+        raise HTTPException(404, "Subscription not found")
+    return {"status": "deleted", "id": sub_id}
+
+
+@router.get("/nexus/deliveries")
+async def nexus_list_deliveries(
+    api_key: str = Query(..., min_length=1),
+    limit: int = Query(default=50, le=200),
+):
+    """List recent delivery attempts for a subscription."""
+    db = get_db()
+    rows = db.execute(
+        """SELECT d.id, d.event_type, d.status_code, d.success,
+                  d.attempts, d.error, d.delivered_at, s.name
+           FROM nexus_deliveries d
+           JOIN nexus_subscriptions s ON d.subscription_id = s.id
+           WHERE s.api_key = ?
+           ORDER BY d.delivered_at DESC LIMIT ?""",
+        (api_key, limit),
+    ).fetchall()
+    return {"deliveries": [dict(r) for r in rows]}

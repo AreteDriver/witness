@@ -261,6 +261,38 @@ export interface AlertData {
   created_at: number;
 }
 
+// NEXUS types
+export interface NexusSubscription {
+  id: number;
+  name: string;
+  endpoint_url: string;
+  filters: Record<string, unknown>;
+  active: boolean;
+  delivery_count: number;
+  last_delivered_at: number | null;
+  created_at: number;
+}
+
+export interface NexusSubscribeResponse {
+  status: string;
+  api_key: string;
+  secret: string;
+  name: string;
+  endpoint_url: string;
+  filters: Record<string, unknown>;
+}
+
+export interface NexusDelivery {
+  id: number;
+  event_type: string;
+  status_code: number | null;
+  success: number;
+  attempts: number;
+  error: string | null;
+  delivered_at: number;
+  name: string;
+}
+
 // Wallet auth types
 export interface WalletConnectResponse {
   session_token: string;
@@ -498,4 +530,22 @@ export const api = {
   // System dossier
   systemDossier: (systemId: string) =>
     fetchJson<SystemDossier>(`/system/${systemId}`),
+
+  // NEXUS
+  nexusSubscribe: (name: string, endpointUrl: string, filters: Record<string, unknown> = {}) =>
+    postJson<NexusSubscribeResponse>('/nexus/subscribe', {
+      name, endpoint_url: endpointUrl, filters,
+    }),
+  nexusSubscriptions: (apiKey: string) =>
+    fetchJson<{ subscriptions: NexusSubscription[] }>(
+      `/nexus/subscriptions?api_key=${encodeURIComponent(apiKey)}`
+    ),
+  nexusDeleteSubscription: (subId: number, apiKey: string) =>
+    deleteJson<{ status: string }>(
+      `/nexus/subscriptions/${subId}?api_key=${encodeURIComponent(apiKey)}`
+    ),
+  nexusDeliveries: (apiKey: string, limit = 50) =>
+    fetchJson<{ deliveries: NexusDelivery[] }>(
+      `/nexus/deliveries?api_key=${encodeURIComponent(apiKey)}&limit=${limit}`
+    ),
 };
