@@ -3,7 +3,7 @@
 **Project**: WatchTower — The Living Memory of EVE Frontier
 **Audit Date**: 2026-03-12 (updated from March 10 audit)
 **Context**: EVE Frontier x Sui Hackathon 2026 (deadline March 31)
-**Stats**: 495 tests passing, 80%+ coverage, 1,320+ live characters, 24,502 system names
+**Stats**: 496 tests passing, 80%+ coverage, 1,320+ live characters, 24,502 system names
 
 ---
 

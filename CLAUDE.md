@@ -15,10 +15,10 @@ Chain archaeology + AI intelligence platform. Reads the blockchain → entity do
 - **Backend**: FastAPI + SQLite WAL + Pydantic v2 (Python 3.12)
 - **Frontend**: React 19 + Vite + Tailwind CSS v4 (TypeScript strict)
 - **Contracts**: Sui Move (WatcherSystem reputation oracle)
-- **AI**: Anthropic API via httpx (narrative generation)
+- **AI**: Anthropic API (narrative generation + token usage tracking)
 - **Bot**: Discord webhooks
 - **Deploy**: Fly.io (backend) + Vercel (frontend)
-- **Tests**: 495 passing, 80%+ coverage (pytest)
+- **Tests**: 496 passing, 80%+ coverage (pytest)
 - **Data sources**: Sui GraphQL (dynamic), World API static (system names)
 
 ### Data Flow
@@ -55,6 +55,7 @@ cd frontend && npx vercel --prod              # deploy frontend
 - `threat_level` is derived, not stored — compute from `feral_ai_tier` at query time
 - Killmails are FIRST-CLASS data — only durable positional signal post-coordinate-privacy
 - Cache AI narratives — same entity + same event hash = cached response
+- AI token usage tracked in `ai_usage` table — `_track_usage()` in narrative.py, exposed via `/admin/analytics`
 - Fingerprint logic is pure functions — no side effects, fully testable
 - All C5 endpoints return `{ cycle: 5, reset_at: "...", data: [...] }` envelope
 - HACKATHON_MODE + HACKATHON_ENDS env vars gate Spymaster-for-all with date-based auto-revert
@@ -120,7 +121,7 @@ witness/
 │   ├── components/    # 28 React components
 │   ├── contexts/      # AuthContext (wallet)
 │   └── hooks/         # useEventStream (SSE)
-├── tests/             # 495 tests
+├── tests/             # 496 tests
 ├── Dockerfile
 ├── fly.toml
 └── frontend/vercel.json
@@ -181,7 +182,7 @@ WatchTower's lane is **uncontested on intelligence depth**. Only submission doin
 | Category | Fit | Strategy |
 |---|---|---|
 | Most Creative | **Primary target** | Chain archaeology + earned titles + "living memory" |
-| Best Technical | Strong | Poller, fingerprint engine, AI pipeline, 495 tests |
+| Best Technical | Strong | Poller, fingerprint engine, AI pipeline, 496 tests |
 | Most Utility | Strong | Entity dossiers, reputation API, story feed |
 | Best Live Integration | Clear path | +10% bonus via April 1–15 deploy window |
 
