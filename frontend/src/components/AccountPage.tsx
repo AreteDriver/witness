@@ -443,16 +443,14 @@ export function AccountPage() {
         </div>
       </div>
 
-      {/* Subscribe / Upgrade — hidden at max tier */}
-      {currentTier < 3 && (
+      {/* Subscribe / Upgrade — hidden at max tier unless hackathon mode */}
+      {(currentTier < 3 || isHackathonMode) && (
       <div className="bg-[var(--eve-surface)] border border-[var(--eve-border)] rounded-lg p-5 space-y-4">
         <h3 className="text-sm font-bold text-[var(--eve-green)] uppercase tracking-wider">
-          {currentTier > 0 ? 'Upgrade' : 'Subscribe'}
+          Subscribe
         </h3>
         <p className="text-xs text-[var(--eve-dim)]">
-          {currentTier > 0
-            ? 'Unlock more intelligence by upgrading your tier. Pay on-chain with SUI or by card.'
-            : 'Unlock deeper intelligence with a WatchTower subscription. Pay on-chain with SUI or by card.'}
+          Pay on-chain with SUI or by card to lock in your tier post-hackathon.
         </p>
 
         {/* Stale price warning */}
@@ -502,7 +500,7 @@ export function AccountPage() {
               {txError}
             </div>
           )}
-          {SUBSCRIPTION_TIERS.filter((plan) => plan.tier > currentTier).map((plan) => {
+          {SUBSCRIPTION_TIERS.filter((plan) => isHackathonMode || plan.tier > currentTier).map((plan) => {
             return (
               <div
                 key={plan.name}
