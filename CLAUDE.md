@@ -18,7 +18,7 @@ Chain archaeology + AI intelligence platform. Reads the blockchain → entity do
 - **AI**: Anthropic API (narrative generation + token usage tracking)
 - **Bot**: Discord webhooks
 - **Deploy**: Fly.io (backend) + Vercel (frontend)
-- **Tests**: 496 passing, 80%+ coverage (pytest)
+- **Tests**: 523 passing, 80%+ coverage (pytest)
 - **Data sources**: Sui GraphQL (dynamic), World API static (system names)
 
 ### Data Flow
@@ -121,7 +121,7 @@ witness/
 │   ├── components/    # 28 React components
 │   ├── contexts/      # AuthContext (wallet)
 │   └── hooks/         # useEventStream (SSE)
-├── tests/             # 496 tests
+├── tests/             # 523 tests
 ├── Dockerfile
 ├── fly.toml
 └── frontend/vercel.json
@@ -182,7 +182,7 @@ WatchTower's lane is **uncontested on intelligence depth**. Only submission doin
 | Category | Fit | Strategy |
 |---|---|---|
 | Most Creative | **Primary target** | Chain archaeology + earned titles + "living memory" |
-| Best Technical | Strong | Poller, fingerprint engine, AI pipeline, 496 tests |
+| Best Technical | Strong | Poller, fingerprint engine, AI pipeline, 523 tests |
 | Most Utility | Strong | Entity dossiers, reputation API, story feed |
 | Best Live Integration | Clear path | +10% bonus via April 1–15 deploy window |
 

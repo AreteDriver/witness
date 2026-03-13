@@ -3,7 +3,7 @@
 **Project**: WatchTower — The Living Memory of EVE Frontier
 **Audit Date**: 2026-03-12 (updated from March 10 audit)
 **Context**: EVE Frontier x Sui Hackathon 2026 (deadline March 31)
-**Stats**: 496 tests passing, 80%+ coverage, 1,320+ live characters, 24,502 system names
+**Stats**: 523 tests passing, 80%+ coverage, 1,320+ live characters, 24,502 system names
 
 ---
 
@@ -31,7 +31,7 @@
 | # | Issue | Location | Status |
 |---|---|---|---|
 | S8 | Discord bot at 10% test coverage | `discord_bot.py` — 249/276 uncovered | OPEN |
-| S9 | Oracle C5 alerts untested | `oracle.py:222-333` at 62% | OPEN |
+| S9 | Oracle C5 alerts untested | `oracle.py:222-333` at 62% | **FIXED** — 27 tests for all 4 alert types + cooldowns |
 | S10 | `gate_created`/`gate_linked` declared but never polled | `sui_graphql.py` | **FIXED** — Replaced with `location` event type |
 | S11 | StoryFeed.tsx bypasses api.ts for pagination | `StoryFeed.tsx` | **FIXED** — Uses `api.feed()` now |
 | S12 | Timeline URL construction bug — undefined in query params | `api.ts` | **FIXED** — URLSearchParams conditional building |
@@ -253,17 +253,17 @@ All 56 locked Python dependencies are recent versions. No stale or abandoned pac
 |---|---|---|---|---|
 | 1 | Fix 3 ruff E501 violations in `tests/test_cycle5.py` | 5 min | CI lint passes | Correctness |
 | 2 | Update README test count (362 -> 383) | 2 min | Accuracy | Documentation |
-| 3 | Cap `_pending_states` dict size (e.g., max 1000 entries) | 5 min | Memory safety | Security |
+| 3 | ~~Cap `_pending_states` dict size (e.g., max 1000 entries)~~ | 5 min | Memory safety | **DONE** |
 
 ### Tier 2: Medium Impact / Medium Effort (During Hackathon)
 
 | # | Fix | Effort | Impact | Category |
 |---|---|---|---|---|
-| 4 | Fix `_ingest_killmails` count logic — check `lastrowid` or cursor changes | 15 min | Data accuracy | Correctness |
-| 5 | Fix `_update_entities` event_count double-counting on repeated polls | 30 min | Data accuracy | Correctness |
-| 6 | Add healthcheck to `docker-compose.yml` | 5 min | Container reliability | Infrastructure |
+| 4 | ~~Fix `_ingest_killmails` count logic~~ | 15 min | Data accuracy | **DONE** (cursor.rowcount) |
+| 5 | ~~Fix `_update_entities` event_count double-counting~~ | 30 min | Data accuracy | **DONE** (direct assignment) |
+| 6 | ~~Add healthcheck to `docker-compose.yml`~~ | 5 min | Container reliability | **DONE** |
 | 7 | Encrypt or omit EVE SSO access/refresh tokens in `eve_sessions` (or store only session hash) | 30 min | Token security | Security |
-| 8 | Whitelist CORS `allow_headers` instead of `["*"]` | 5 min | Security hygiene | Security |
+| 8 | ~~Whitelist CORS `allow_headers` instead of `["*"]`~~ | 5 min | Security hygiene | **DONE** |
 
 ### Tier 3: Low Impact / Higher Effort (Post-Hackathon)
 
@@ -274,7 +274,7 @@ All 56 locked Python dependencies are recent versions. No stale or abandoned pac
 | 11 | Split `poller.py` ingest functions into separate module | 1 hr | Maintainability | Maintainability |
 | 12 | Add Litestream for SQLite WAL backup to S3 | 2-3 hrs | Data durability | Infrastructure |
 | 13 | Add CHANGELOG.md with conventional commit parsing | 30 min | Documentation | Documentation |
-| 14 | Set `min_machines_running = 1` in fly.toml for production | 2 min | Latency | Infrastructure |
+| 14 | ~~Set `min_machines_running = 1` in fly.toml for production~~ | 2 min | Latency | **DONE** |
 | 15 | Investigate 42 skipped tests — ensure they're intentional | 1-2 hrs | Coverage confidence | Correctness |
 
 ---
