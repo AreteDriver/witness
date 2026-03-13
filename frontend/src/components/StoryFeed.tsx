@@ -60,15 +60,11 @@ export function StoryFeed() {
     if (!hasMore || loadingMore || items.length === 0) return;
     setLoadingMore(true);
     const oldest = items[items.length - 1].timestamp;
-    fetch(`/api/feed?limit=20&before=${oldest}`, {
-      headers: { ...getAuthHeadersInline() },
-    })
-      .then((r) => r.json())
-      .then((data: { items: FeedItem[] }) => {
-        setItems(prev => [...prev, ...data.items]);
-        setHasMore(data.items.length >= 20);
-        setLoadingMore(false);
-      }).catch(() => setLoadingMore(false));
+    api.feed(20, oldest).then((data) => {
+      setItems(prev => [...prev, ...data.items]);
+      setHasMore(data.items.length >= 20);
+      setLoadingMore(false);
+    }).catch(() => setLoadingMore(false));
   };
 
   const handleEntityClick = (entityId: string) => {
@@ -176,13 +172,4 @@ export function StoryFeed() {
       )}
     </div>
   );
-}
-
-function getAuthHeadersInline(): Record<string, string> {
-  const headers: Record<string, string> = {};
-  const session = localStorage.getItem('watchtower_session');
-  if (session) headers['X-Session'] = session;
-  const wallet = localStorage.getItem('watchtower_wallet');
-  if (wallet) headers['X-Wallet-Address'] = wallet;
-  return headers;
 }

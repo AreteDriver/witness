@@ -239,6 +239,50 @@ def _ingest_smart_assemblies(db, assemblies: list[dict]) -> int:
     return count
 
 
+def _update_assembly_locations(db, locations: list[dict]) -> int:
+    """Update assembly records with location data from LocationRevealedEvent."""
+    count = 0
+    for loc in locations:
+        assembly_id = loc.get("assembly_id", "")
+        solar_system_id = loc.get("solar_system_id", "")
+        if not assembly_id or not solar_system_id:
+            continue
+
+        # Resolve system name from solar_systems table
+        name_row = db.execute(
+            "SELECT name FROM solar_systems WHERE solar_system_id = ?",
+            (solar_system_id,),
+        ).fetchone()
+        system_name = name_row["name"] if name_row else ""
+
+        def _safe_coord(val):
+            try:
+                return float(val) if val else None
+            except (TypeError, ValueError):
+                return None
+
+        try:
+            cursor = db.execute(
+                """UPDATE smart_assemblies
+                   SET solar_system_id = ?, solar_system_name = ?,
+                       x = ?, y = ?, z = ?
+                   WHERE assembly_id = ? AND (solar_system_id IS NULL OR solar_system_id = '')""",
+                (
+                    solar_system_id,
+                    system_name,
+                    _safe_coord(loc.get("x")),
+                    _safe_coord(loc.get("y")),
+                    _safe_coord(loc.get("z")),
+                    assembly_id,
+                ),
+            )
+            if cursor.rowcount > 0:
+                count += 1
+        except Exception as e:
+            logger.error("Assembly location update error: %s", e)
+    return count
+
+
 def _ingest_gate_events(db, events: list[dict]) -> int:
     """Ingest gate transit events. Returns count of new records."""
     count = 0
@@ -925,25 +969,28 @@ async def run_poller() -> None:
                 kill_task = sui.poll_killmails(client)
                 assembly_task = sui.poll_assemblies(client)
                 jump_task = sui.poll_gate_jumps(client)
-                raw_kills, raw_assemblies, raw_jumps = await asyncio.gather(
-                    kill_task, assembly_task, jump_task
+                location_task = sui.poll_locations(client)
+                raw_kills, raw_assemblies, raw_jumps, raw_locations = (
+                    await asyncio.gather(
+                        kill_task, assembly_task, jump_task, location_task
+                    )
                 )
 
                 db = get_db()
                 new_kills = _ingest_killmails(db, raw_kills)
                 new_assemblies = _ingest_smart_assemblies(db, raw_assemblies)
                 new_jumps = _ingest_gate_events(db, raw_jumps)
-                new_subs = _ingest_subscriptions(db, raw_assemblies)
+                new_locs = _update_assembly_locations(db, raw_locations)
 
-                if new_kills or new_assemblies or new_jumps:
+                if new_kills or new_assemblies or new_jumps or new_locs:
                     _update_entities(db)
                     db.commit()
                     logger.info(
-                        "Sui ingested: %d kills, %d assemblies, %d jumps, %d subs",
+                        "Sui ingested: %d kills, %d assemblies, %d jumps, %d locs",
                         new_kills,
                         new_assemblies,
                         new_jumps,
-                        new_subs,
+                        new_locs,
                     )
                     # Publish to SSE event bus
                     try:

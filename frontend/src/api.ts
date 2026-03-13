@@ -402,7 +402,8 @@ export const api = {
   search: (q: string) => fetchJson<{ results: SearchResult[] }>(`/search?q=${encodeURIComponent(q)}`),
   entity: (id: string) => fetchJson<Dossier>(`/entity/${id}`),
   fingerprint: (id: string) => fetchJson<Fingerprint>(`/entity/${id}/fingerprint`),
-  feed: (limit = 20) => fetchJson<{ items: FeedItem[] }>(`/feed?limit=${limit}`),
+  feed: (limit = 20, before?: number) =>
+    fetchJson<{ items: FeedItem[] }>(`/feed?limit=${limit}${before ? `&before=${before}` : ''}`),
   entities: (type?: string, limit = 20) =>
     fetchJson<{ entities: Entity[]; total: number }>(
       `/entities?limit=${limit}${type ? `&entity_type=${type}` : ''}`
@@ -411,10 +412,15 @@ export const api = {
     fetchJson<{ entries: { entity_id: string; display_name: string; score: number }[] }>(
       `/leaderboard/${category}`
     ),
-  timeline: (id: string, start?: number, end?: number) =>
-    fetchJson<{ entity_id: string; events: TimelineEvent[] }>(
-      `/entity/${id}/timeline${start ? `?start=${start}` : ''}${end ? `&end=${end}` : ''}`
-    ),
+  timeline: (id: string, start?: number, end?: number) => {
+    const params = new URLSearchParams();
+    if (start !== undefined) params.set('start', String(start));
+    if (end !== undefined) params.set('end', String(end));
+    const qs = params.toString();
+    return fetchJson<{ entity_id: string; events: TimelineEvent[] }>(
+      `/entity/${id}/timeline${qs ? `?${qs}` : ''}`
+    );
+  },
   compare: (id1: string, id2: string) =>
     fetchJson<CompareResult>(`/fingerprint/compare?entity_1=${id1}&entity_2=${id2}`),
   narrative: (id: string) => fetchJson<Narrative>(`/entity/${id}/narrative`),

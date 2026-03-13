@@ -29,8 +29,7 @@ EVENT_TYPES = {
     "character": f"{STILLNESS_PKG}::character::CharacterCreatedEvent",
     "assembly": f"{STILLNESS_PKG}::assembly::AssemblyCreatedEvent",
     "jump": f"{STILLNESS_PKG}::gate::JumpEvent",
-    "gate_created": f"{STILLNESS_PKG}::gate::GateCreatedEvent",
-    "gate_linked": f"{STILLNESS_PKG}::gate::GateLinkedEvent",
+    "location": f"{STILLNESS_PKG}::location::LocationRevealedEvent",
 }
 
 # GraphQL query template for paginated event fetching
@@ -296,6 +295,36 @@ def transform_gate_jumps(events: list[dict]) -> list[dict]:
     return results
 
 
+def transform_location_reveals(events: list[dict]) -> list[dict]:
+    """Transform Sui LocationRevealedEvent → assembly location updates.
+
+    Returns list of dicts with assembly_id, solar_system_id, x, y, z.
+    Used to backfill location data on assemblies (not available in creation events).
+    """
+    results = []
+    for event in events:
+        json_data = event.get("contents", {}).get("json", {})
+        if not json_data:
+            continue
+
+        assembly_id = json_data.get("assembly_id", "")
+        solarsystem = str(json_data.get("solarsystem", ""))
+        x = json_data.get("x", "")
+        y = json_data.get("y", "")
+        z = json_data.get("z", "")
+
+        if assembly_id and solarsystem:
+            results.append({
+                "assembly_id": assembly_id,
+                "solar_system_id": solarsystem,
+                "x": x,
+                "y": y,
+                "z": z,
+            })
+
+    return results
+
+
 # GraphQL query for bulk Character objects (name resolution)
 CHARACTERS_QUERY = """
 query FetchCharacters($type: String!, $first: Int!, $after: String) {
@@ -412,6 +441,7 @@ class SuiGraphQLPoller:
             "character": None,
             "assembly": None,
             "jump": None,
+            "location": None,
         }
         self.names_bootstrapped = False
 
@@ -466,6 +496,19 @@ class SuiGraphQLPoller:
         if cursor:
             self.cursors["jump"] = cursor
         return transform_gate_jumps(events)
+
+    async def poll_locations(
+        self, client: httpx.AsyncClient
+    ) -> list[dict]:
+        """Fetch new location reveal events since last cursor."""
+        events, cursor = await fetch_events(
+            client,
+            EVENT_TYPES["location"],
+            after_cursor=self.cursors["location"],
+        )
+        if cursor:
+            self.cursors["location"] = cursor
+        return transform_location_reveals(events)
 
     async def bootstrap_character_names(
         self, client: httpx.AsyncClient
