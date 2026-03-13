@@ -18,7 +18,7 @@ Chain archaeology + AI intelligence platform. Reads the blockchain → entity do
 - **AI**: Anthropic API via httpx (narrative generation)
 - **Bot**: Discord webhooks
 - **Deploy**: Fly.io (backend) + Vercel (frontend)
-- **Tests**: 476 passing, 80%+ coverage (pytest)
+- **Tests**: 495 passing, 80%+ coverage (pytest)
 
 ### Data Flow
 
@@ -57,6 +57,9 @@ cd frontend && npx vercel --prod              # deploy frontend
 - Fingerprint logic is pure functions — no side effects, fully testable
 - All C5 endpoints return `{ cycle: 5, reset_at: "...", data: [...] }` envelope
 - HACKATHON_MODE + HACKATHON_ENDS env vars gate Spymaster-for-all with date-based auto-revert
+- Auth uses challenge-response: `/wallet/challenge` → sign with dapp-kit → `/wallet/connect` verifies Ed25519 sig
+- Sui signature format: `scheme_byte || raw_sig || public_key` (base64). PersonalMessage intent: `[3,0,0]` + BCS(msg) → Blake2b-256 → Ed25519 verify
+- Address derived from Blake2b-256(scheme_byte || public_key) — must match claimed wallet
 
 ---
 
@@ -67,9 +70,10 @@ cd frontend && npx vercel --prod              # deploy frontend
 - `blockchain-gateway-stillness.live.tech.evefrontier.com` → NXDOMAIN
 - Static data docs: `https://world-api-stillness.live.tech.evefrontier.com/docs/index.html`
 - **This is NOT a temporary outage.** The poller is hitting a permanently dead endpoint.
-- World API static data also dead (404 on smartcharacters)
+- World API static data serves solar system names (24,502 systems) via `/v2/solarsystems`
 - **Live data restored via Sui GraphQL**: 1,320+ characters, 18+ killmails, 500+ assemblies (and growing)
 - Previous cycle (archived): 36K entities, 4.7K killmails, 170 titles
+- Solar system names bootstrapped from World API static endpoint on first poll cycle
 
 ### Sui GraphQL Migration — COMPLETE
 
@@ -82,6 +86,9 @@ cd frontend && npx vercel --prod              # deploy frontend
 - [x] Assembly indexer → `AssemblyCreatedEvent`
 - [x] Gate jump indexer → `JumpEvent` (wired, no events yet this cycle)
 - [x] Character name resolution → `metadata.name` on Character objects
+- [x] Solar system name resolution → World API static `/v2/solarsystems` (24,502 names)
+- [x] Dead World API calls removed (tribes, C5 endpoints)
+- [x] Periodic name re-bootstrap every 100 cycles
 - [x] Live data confirmed flowing (18+ kills, 500+ assemblies, 1,320 characters)
 
 Key Sui data shapes:
@@ -102,14 +109,14 @@ witness/
 │   ├── bot/           # discord webhooks
 │   ├── core/          # config, logger
 │   ├── db/            # database schema, migrations
-│   ├── ingestion/     # poller (World API → SQLite)
+│   ├── ingestion/     # poller (Sui GraphQL → SQLite), sui_graphql adapter
 │   └── warden/        # autonomous threat detection loop
 ├── contracts/sui/     # Move reputation oracle
 ├── frontend/src/
 │   ├── components/    # 28 React components
 │   ├── contexts/      # AuthContext (wallet)
 │   └── hooks/         # useEventStream (SSE)
-├── tests/             # 456 tests
+├── tests/             # 495 tests
 ├── Dockerfile
 ├── fly.toml
 └── frontend/vercel.json
@@ -170,7 +177,7 @@ WatchTower's lane is **uncontested on intelligence depth**. Only submission doin
 | Category | Fit | Strategy |
 |---|---|---|
 | Most Creative | **Primary target** | Chain archaeology + earned titles + "living memory" |
-| Best Technical | Strong | Poller, fingerprint engine, AI pipeline, 456 tests |
+| Best Technical | Strong | Poller, fingerprint engine, AI pipeline, 495 tests |
 | Most Utility | Strong | Entity dossiers, reputation API, story feed |
 | Best Live Integration | Clear path | +10% bonus via April 1–15 deploy window |
 

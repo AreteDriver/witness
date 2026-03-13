@@ -3,7 +3,7 @@
 **Project**: WatchTower — The Living Memory of EVE Frontier
 **Audit Date**: 2026-03-12 (updated from March 10 audit)
 **Context**: EVE Frontier x Sui Hackathon 2026 (deadline March 31)
-**Stats**: 476 tests passing, 80.96% coverage, 1,320+ live characters from Sui GraphQL
+**Stats**: 495 tests passing, 80%+ coverage, 1,320+ live characters, 24,502 system names
 
 ---
 
@@ -11,32 +11,32 @@
 
 ### CRITICAL — Affects Demo/Judges
 
-| # | Issue | Location | Fix |
+| # | Issue | Location | Status |
 |---|---|---|---|
-| S1 | **HACKATHON_MODE must be True in prod** — judges won't get Spymaster tier | `config.py:39` defaults False | Verify Fly.io secret `HACKATHON_MODE=true` |
-| S2 | **System names empty everywhere** — hotzones, system dossiers, feed all show hex IDs | `hotzones.py:79`, `HotzoneMap.tsx:70` | Need system name mapping from Sui or static data |
-| S3 | **Auth has no signature verification** — anyone can POST any wallet | `auth.py:5,71` (explicit TODO) | Implement Sui wallet sig verify |
+| S1 | **HACKATHON_MODE must be True in prod** | `config.py:39` | **FIXED** — Fly.io secret set |
+| S2 | **System names empty everywhere** | `hotzones.py`, `story_feed.py`, `routes.py` | **FIXED** — `solar_systems` table bootstrapped from World API (24,502 names) |
+| S3 | **Auth has no signature verification** | `auth.py` | **FIXED** — Challenge-response with Ed25519 sig verify, Blake2b-256 address derivation |
 
 ### HIGH — Data Quality
 
-| # | Issue | Location | Fix |
+| # | Issue | Location | Status |
 |---|---|---|---|
-| S4 | **Dead World API calls every cycle** — tribes, C5 endpoints all NXDOMAIN | `poller.py:938,642,712-717` | Remove or gate behind flag |
-| S5 | **Warden entity_ids as bare string, not JSON array** — breaks feed entity links | `warden.py:458` | `json.dumps([entity_id])` |
-| S6 | **`_hypothesize_hunting_patterns` queries victims not killers** — wrong framing | `warden.py:341-348` | Query attacker_character_ids |
-| S7 | **Sui assemblies have no location data** — AssemblyCreatedEvent lacks solar_system | `sui_graphql.py:243-250` | Query Assembly objects directly |
+| S4 | **Dead World API calls every cycle** | `poller.py` | **FIXED** — Tribe/C5 calls removed |
+| S5 | **Warden entity_ids as bare string** | `warden.py:458` | **FIXED** — `json.dumps([entity_id])` |
+| S6 | **Hunting patterns queries victims not killers** | `warden.py:335-388` | **FIXED** — Queries `attacker_character_ids` JSON |
+| S7 | **Sui assemblies have no location data** — AssemblyCreatedEvent lacks solar_system | `sui_graphql.py:243-250` | OPEN — Query Assembly objects directly |
 
 ### MEDIUM — Coverage & Cleanup
 
-| # | Issue | Location | Fix |
+| # | Issue | Location | Status |
 |---|---|---|---|
-| S8 | Discord bot at 10% test coverage | `discord_bot.py` — 249/276 uncovered | Add discord.py mocks |
-| S9 | Oracle C5 alerts untested | `oracle.py:222-333` at 62% | Add test cases |
-| S10 | `gate_created`/`gate_linked` declared but never polled | `sui_graphql.py:31-33` | Add poll methods or remove |
-| S11 | StoryFeed.tsx bypasses api.ts for pagination | `StoryFeed.tsx:63-71` | Use api.ts feed method |
-| S12 | Timeline URL construction bug — undefined in query params | `api.ts:414` | Conditional param building |
-| S13 | Killmail names always empty at ingest — rely on post-hoc enrichment | `sui_graphql.py:164-165` | Periodic bootstrap (not just once) |
-| S14 | `_ingest_subscriptions` receives no data from Sui | `poller.py:223-258` | Remove call or implement |
+| S8 | Discord bot at 10% test coverage | `discord_bot.py` — 249/276 uncovered | OPEN |
+| S9 | Oracle C5 alerts untested | `oracle.py:222-333` at 62% | OPEN |
+| S10 | `gate_created`/`gate_linked` declared but never polled | `sui_graphql.py:31-33` | OPEN |
+| S11 | StoryFeed.tsx bypasses api.ts for pagination | `StoryFeed.tsx:63-71` | OPEN |
+| S12 | Timeline URL construction bug — undefined in query params | `api.ts:414` | OPEN |
+| S13 | Killmail names always empty at ingest | `poller.py` | **FIXED** — Periodic re-bootstrap every 100 cycles |
+| S14 | `_ingest_subscriptions` receives no data from Sui | `poller.py:223-258` | OPEN |
 
 ---
 
