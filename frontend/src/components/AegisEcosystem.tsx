@@ -10,6 +10,15 @@ interface MonolithAnomaly {
   detected_at: number;
 }
 
+interface MonolithBugReport {
+  report_id: string;
+  title: string;
+  severity: string;
+  category: string;
+  summary: string;
+  generated_at: number;
+}
+
 const STATS: { value: string; label: string }[] = [
   { value: '17', label: 'DETECTION RULES' },
   { value: '4', label: 'CHECKER MODULES' },
@@ -25,12 +34,18 @@ const TAGS: { label: string; variant: 'live' | 'default' }[] = [
 
 export function AegisEcosystem() {
   const [anomalies, setAnomalies] = useState<MonolithAnomaly[]>([]);
+  const [bugReports, setBugReports] = useState<MonolithBugReport[]>([]);
 
   useEffect(() => {
     fetch(`${MONOLITH_API}/anomalies?limit=10`)
       .then((r) => r.json())
       .then((d) => setAnomalies(d.data || []))
       .catch(() => setAnomalies([]));
+
+    fetch(`${MONOLITH_API}/reports?limit=10`)
+      .then((r) => r.json())
+      .then((d) => setBugReports(d.data || []))
+      .catch(() => setBugReports([]));
   }, []);
 
   return (
@@ -244,6 +259,68 @@ export function AegisEcosystem() {
             </div>
             <div className="text-[10px] text-[var(--eve-dim)] mt-2 opacity-60">
               Anomalies detected by Monolith integrity monitor
+            </div>
+          </div>
+        )}
+        {/* Monolith Bug Reports */}
+        {bugReports.length > 0 && (
+          <div className="mt-4 rounded-lg p-4"
+            style={{ background: 'var(--eve-surface)', borderLeft: '2px solid #7F77DD', border: '1px solid var(--eve-border)', borderLeftWidth: '2px', borderLeftColor: '#7F77DD' }}
+          >
+            <h3 className="aegis-mono text-[10px] uppercase tracking-[0.2em] font-bold mb-3"
+              style={{ color: '#7F77DD' }}
+            >
+              Bug Reports &mdash; Monolith ({bugReports.length})
+            </h3>
+            <div className="space-y-2">
+              {bugReports.map((r) => {
+                const sevColor = r.severity === 'CRITICAL' ? 'var(--eve-red)' :
+                  r.severity === 'HIGH' ? '#f59e0b' :
+                  r.severity === 'MEDIUM' ? 'var(--eve-orange)' : 'var(--eve-dim)';
+                return (
+                  <a
+                    key={r.report_id}
+                    href={`https://monolith-evefrontier.fly.dev/api/reports/${r.report_id}?fmt=markdown`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block px-3 py-2 rounded hover:opacity-80 transition-opacity"
+                    style={{ background: 'rgba(127, 119, 221, 0.06)' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="aegis-mono text-[10px] font-bold shrink-0" style={{ color: sevColor }}>
+                          {r.severity}
+                        </span>
+                        <span className="text-xs text-[var(--eve-text)] truncate">
+                          {r.title}
+                        </span>
+                      </div>
+                      <span className="text-[var(--eve-dim)] aegis-mono text-[10px] shrink-0 ml-2">
+                        {new Date(r.generated_at * 1000).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {r.summary && (
+                      <div className="text-[10px] text-[var(--eve-dim)] mt-0.5 line-clamp-1">
+                        {r.summary}
+                      </div>
+                    )}
+                  </a>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between mt-3 pt-2" style={{ borderTop: '1px solid var(--eve-border)' }}>
+              <span className="text-[10px] text-[var(--eve-dim)] opacity-60">
+                Auto-generated from on-chain evidence
+              </span>
+              <a
+                href="https://github.com/AreteDriver/monolith/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="aegis-mono text-[10px] hover:underline"
+                style={{ color: '#7F77DD' }}
+              >
+                View GitHub Issues &rarr;
+              </a>
             </div>
           </div>
         )}
