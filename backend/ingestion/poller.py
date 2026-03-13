@@ -132,6 +132,45 @@ async def bootstrap_system_names(client: httpx.AsyncClient) -> int:
     return len(all_systems)
 
 
+def backfill_missing_system_names() -> int:
+    """Find killmail solar_system_ids not in the solar_systems table and add them.
+
+    For sys-* format IDs (from seed data / early Sui events), derives a readable
+    name from the ID itself (e.g., sys-k-117 -> K-117).
+    Returns count of systems backfilled.
+    """
+    db = get_db()
+    orphaned = db.execute(
+        """SELECT DISTINCT k.solar_system_id
+           FROM killmails k
+           LEFT JOIN solar_systems s ON k.solar_system_id = s.solar_system_id
+           WHERE s.solar_system_id IS NULL
+             AND k.solar_system_id != ''"""
+    ).fetchall()
+
+    if not orphaned:
+        return 0
+
+    count = 0
+    for row in orphaned:
+        sys_id = row[0]
+        # Derive name: sys-k-117 -> K-117, sys-x-9bmn -> X-9BMN
+        if sys_id.startswith("sys-"):
+            name = sys_id[4:].upper()
+        else:
+            name = sys_id  # Fallback: use raw ID as name
+        db.execute(
+            "INSERT OR IGNORE INTO solar_systems (solar_system_id, name) VALUES (?, ?)",
+            (sys_id, name),
+        )
+        count += 1
+
+    if count:
+        db.commit()
+        logger.info("Backfilled %d missing solar system names", count)
+    return count
+
+
 def _ingest_killmails(db, killmails: list[dict]) -> int:
     """Ingest killmails from v2 API. Returns count of new records."""
     count = 0
@@ -1147,6 +1186,12 @@ async def run_poller() -> None:
                 await bootstrap_system_names(client)
             except Exception as e:
                 logger.error("System names bootstrap error (continuing): %s", e)
+
+            # === Backfill: catch orphaned system IDs (seed data, format mismatches) ===
+            try:
+                backfill_missing_system_names()
+            except Exception as e:
+                logger.error("System names backfill error (continuing): %s", e)
 
             # === Reference data from Sui GraphQL (characters) ===
             # NOTE: World API is dead (NXDOMAIN since March 11, 2026).

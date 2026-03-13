@@ -139,6 +139,17 @@ def seed(db_path: str, quiet: bool = False) -> str:
             }
         )
 
+    # -- Solar system names (so hotzones/dossiers show real names, not raw IDs) --
+    if not quiet:
+        print("Seeding solar system names...")
+    for sys_name in SYSTEMS:
+        sys_id = _mid("sys", sys_name)
+        conn.execute(
+            "INSERT OR IGNORE INTO solar_systems (solar_system_id, name) VALUES (?, ?)",
+            (sys_id, sys_name),
+        )
+    conn.commit()
+
     gates = [
         {"id": _mid("gate", n), "name": n, "sys": _mid("sys", SYSTEMS[i % len(SYSTEMS)])}
         for i, n in enumerate(GATES)

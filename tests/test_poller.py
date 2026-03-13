@@ -25,6 +25,7 @@ from backend.ingestion.poller import (
     _ingest_tribes,
     _parse_iso_time,
     _update_entities,
+    backfill_missing_system_names,
     poll_endpoint,
     run_poller,
 )
@@ -1189,3 +1190,68 @@ async def test_fetch_tribe_details_handles_error():
             )
             details = await _fetch_tribe_details(client, [{"id": 999}])
     assert details == []
+
+
+# --- backfill_missing_system_names ---
+
+
+def test_backfill_missing_system_names():
+    """Orphaned sys-* killmail IDs get readable names in solar_systems."""
+    db = _get_test_db()
+    now = int(time.time())
+    # Insert killmails with sys-* IDs (no matching solar_systems entry)
+    db.execute(
+        "INSERT INTO killmails (killmail_id, victim_character_id, victim_name,"
+        " solar_system_id, timestamp) VALUES (?, ?, ?, ?, ?)",
+        ("km-1", "v1", "Victim", "sys-k-117", now),
+    )
+    db.execute(
+        "INSERT INTO killmails (killmail_id, victim_character_id, victim_name,"
+        " solar_system_id, timestamp) VALUES (?, ?, ?, ?, ?)",
+        ("km-2", "v2", "Victim2", "sys-x-9bmn", now),
+    )
+    # Also insert a numeric-ID killmail that already has a solar_systems entry
+    db.execute(
+        "INSERT INTO solar_systems (solar_system_id, name) VALUES (?, ?)",
+        ("30013496", "I88-BJC"),
+    )
+    db.execute(
+        "INSERT INTO killmails (killmail_id, victim_character_id, victim_name,"
+        " solar_system_id, timestamp) VALUES (?, ?, ?, ?, ?)",
+        ("km-3", "v3", "Victim3", "30013496", now),
+    )
+    db.commit()
+
+    with patch("backend.ingestion.poller.get_db", return_value=db):
+        count = backfill_missing_system_names()
+
+    assert count == 2  # Only the 2 sys-* IDs, not the numeric one
+    row1 = db.execute(
+        "SELECT name FROM solar_systems WHERE solar_system_id = 'sys-k-117'"
+    ).fetchone()
+    assert row1["name"] == "K-117"
+    row2 = db.execute(
+        "SELECT name FROM solar_systems WHERE solar_system_id = 'sys-x-9bmn'"
+    ).fetchone()
+    assert row2["name"] == "X-9BMN"
+
+
+def test_backfill_missing_system_names_no_orphans():
+    """No-op when all killmail system IDs are already mapped."""
+    db = _get_test_db()
+    now = int(time.time())
+    db.execute(
+        "INSERT INTO solar_systems (solar_system_id, name) VALUES (?, ?)",
+        ("30013496", "I88-BJC"),
+    )
+    db.execute(
+        "INSERT INTO killmails (killmail_id, victim_character_id, victim_name,"
+        " solar_system_id, timestamp) VALUES (?, ?, ?, ?, ?)",
+        ("km-1", "v1", "Victim", "30013496", now),
+    )
+    db.commit()
+
+    with patch("backend.ingestion.poller.get_db", return_value=db):
+        count = backfill_missing_system_names()
+
+    assert count == 0
