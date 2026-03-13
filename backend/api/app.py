@@ -13,12 +13,13 @@ from slowapi.errors import RateLimitExceeded
 from backend.analysis.naming_engine import refresh_all_titles
 from backend.analysis.oracle import check_c5_alerts, check_watches
 from backend.analysis.story_feed import generate_feed_items
+from backend.api.admin_pricing import router as admin_pricing_router
 from backend.api.auth import router as auth_router
 from backend.api.cycle5 import router as cycle5_router
 from backend.api.events import router as events_router
-from backend.api.admin_pricing import router as admin_pricing_router
 from backend.api.pricing import router as pricing_router
 from backend.api.rate_limit import limiter
+from backend.api.reference import router as reference_router
 from backend.api.routes import router
 from backend.api.stripe_webhook import router as stripe_router
 from backend.bot.discord_bot import run_bot  # noqa: E402
@@ -143,6 +144,7 @@ app.include_router(cycle5_router, prefix="/api")
 app.include_router(stripe_router, prefix="/api")
 app.include_router(pricing_router, prefix="/api")
 app.include_router(admin_pricing_router, prefix="/api")
+app.include_router(reference_router, prefix="/api")
 
 # Serve frontend static files if built
 FRONTEND_DIR = (Path(__file__).parent.parent.parent / "frontend" / "dist").resolve()

@@ -317,8 +317,72 @@ CREATE INDEX IF NOT EXISTS idx_gate_permits_character ON gate_permits(character_
 -- Solar system name lookup (from World API static data)
 CREATE TABLE IF NOT EXISTS solar_systems (
     solar_system_id TEXT PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    constellation_id TEXT,
+    region_id TEXT
 );
+
+-- Ship reference data (from World API /v2/ships)
+CREATE TABLE IF NOT EXISTS ships (
+    ship_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    class_id TEXT,
+    class_name TEXT,
+    armor INTEGER DEFAULT 0,
+    shield INTEGER DEFAULT 0,
+    structure INTEGER DEFAULT 0,
+    high_slots INTEGER DEFAULT 0,
+    medium_slots INTEGER DEFAULT 0,
+    low_slots INTEGER DEFAULT 0,
+    cpu_output INTEGER DEFAULT 0,
+    powergrid_output INTEGER DEFAULT 0,
+    max_velocity REAL DEFAULT 0,
+    fuel_capacity INTEGER DEFAULT 0,
+    raw_json TEXT,
+    ingested_at INTEGER DEFAULT (unixepoch())
+);
+
+-- Item type reference data (from World API /v2/types)
+CREATE TABLE IF NOT EXISTS item_types (
+    type_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT,
+    group_name TEXT,
+    volume REAL DEFAULT 0,
+    mass REAL DEFAULT 0,
+    raw_json TEXT,
+    ingested_at INTEGER DEFAULT (unixepoch())
+);
+
+-- Constellation reference data (from World API /v2/constellations)
+CREATE TABLE IF NOT EXISTS constellations (
+    constellation_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    region_id TEXT,
+    raw_json TEXT,
+    ingested_at INTEGER DEFAULT (unixepoch())
+);
+
+-- Gate link topology (from World API /v2/solarsystems/{id} gateLinks)
+CREATE TABLE IF NOT EXISTS gate_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    gate_id TEXT NOT NULL,
+    gate_name TEXT,
+    source_system_id TEXT NOT NULL,
+    destination_system_id TEXT NOT NULL,
+    x REAL,
+    y REAL,
+    z REAL,
+    raw_json TEXT,
+    ingested_at INTEGER DEFAULT (unixepoch()),
+    UNIQUE(gate_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_gate_links_source ON gate_links(source_system_id);
+CREATE INDEX IF NOT EXISTS idx_gate_links_dest ON gate_links(destination_system_id);
+CREATE INDEX IF NOT EXISTS idx_item_types_category ON item_types(category);
+CREATE INDEX IF NOT EXISTS idx_ships_class ON ships(class_name);
+CREATE INDEX IF NOT EXISTS idx_constellations_region ON constellations(region_id);
 
 -- AI token usage tracking
 CREATE TABLE IF NOT EXISTS ai_usage (
@@ -397,6 +461,8 @@ MIGRATIONS = [
     "ALTER TABLE watcher_subscriptions ADD COLUMN stripe_customer_id TEXT DEFAULT ''",
     "ALTER TABLE watcher_subscriptions ADD COLUMN stripe_subscription_id TEXT DEFAULT ''",
     "ALTER TABLE watcher_subscriptions ADD COLUMN payment_channel TEXT DEFAULT ''",
+    "ALTER TABLE solar_systems ADD COLUMN constellation_id TEXT",
+    "ALTER TABLE solar_systems ADD COLUMN region_id TEXT",
 ]
 
 _connection: sqlite3.Connection | None = None

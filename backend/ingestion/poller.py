@@ -14,6 +14,7 @@ import httpx
 from backend.core.config import settings
 from backend.core.logger import get_logger
 from backend.db.database import get_db
+from backend.ingestion.coordinates import eve_to_render, safe_coord
 from backend.ingestion.sui_graphql import SuiGraphQLPoller
 
 logger = get_logger("poller")
@@ -123,13 +124,332 @@ async def bootstrap_system_names(client: httpx.AsyncClient) -> int:
             name = sys.get("name", "")
             if sys_id and name:
                 db.execute(
-                    "INSERT OR IGNORE INTO solar_systems (solar_system_id, name) VALUES (?, ?)",
-                    (sys_id, name),
+                    """INSERT OR IGNORE INTO solar_systems
+                    (solar_system_id, name, constellation_id, region_id)
+                    VALUES (?, ?, ?, ?)""",
+                    (
+                        sys_id,
+                        name,
+                        str(sys.get("constellationId", "")),
+                        str(sys.get("regionId", "")),
+                    ),
                 )
         db.commit()
         logger.info("Bootstrapped %d solar system names from World API", len(all_systems))
 
     return len(all_systems)
+
+
+async def bootstrap_ships(client: httpx.AsyncClient) -> int:
+    """Fetch ship reference data from World API static endpoint.
+
+    Populates ships table with hull stats for threat assessment.
+    Only fetches if table is empty.
+    """
+    db = get_db()
+    existing = db.execute("SELECT COUNT(*) FROM ships").fetchone()[0]
+    if existing > 0:
+        logger.info("Ships already loaded (%d), skipping bootstrap", existing)
+        return 0
+
+    base = settings.WORLD_API_STATIC
+    all_ships: list[dict] = []
+    offset = 0
+    page_size = 100
+
+    for _ in range(50):  # Ship count is much smaller than systems
+        try:
+            r = await client.get(
+                f"{base}/v2/ships",
+                params={"limit": page_size, "offset": offset, "format": "json"},
+                timeout=15.0,
+            )
+            r.raise_for_status()
+            data = r.json()
+
+            items = data.get("data", []) if isinstance(data, dict) else data
+            if not items:
+                break
+            all_ships.extend(items)
+            offset += len(items)
+
+            if len(items) < page_size:
+                break
+        except Exception as e:
+            logger.error("Ships fetch error at offset %d: %s", offset, e)
+            break
+
+    if all_ships:
+        for ship in all_ships:
+            ship_id = str(ship.get("id", ""))
+            if not ship_id:
+                continue
+            health = ship.get("health", {})
+            slots = ship.get("slots", {})
+            physics = ship.get("physics", {})
+            db.execute(
+                """INSERT OR IGNORE INTO ships
+                (ship_id, name, class_id, class_name,
+                 armor, shield, structure,
+                 high_slots, medium_slots, low_slots,
+                 cpu_output, powergrid_output, max_velocity, fuel_capacity,
+                 raw_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    ship_id,
+                    ship.get("name", ""),
+                    str(ship.get("classId", "")),
+                    ship.get("className", ""),
+                    health.get("armor", 0),
+                    health.get("shield", 0),
+                    health.get("structure", 0),
+                    slots.get("high", 0),
+                    slots.get("medium", 0),
+                    slots.get("low", 0),
+                    ship.get("cpuOutput", 0),
+                    ship.get("powergridOutput", 0),
+                    physics.get("maximumVelocity", 0),
+                    ship.get("fuelCapacity", 0),
+                    json.dumps(ship),
+                ),
+            )
+        db.commit()
+        logger.info("Bootstrapped %d ships from World API", len(all_ships))
+
+    return len(all_ships)
+
+
+async def bootstrap_types(client: httpx.AsyncClient) -> int:
+    """Fetch item type reference data from World API static endpoint.
+
+    Populates item_types table. Only fetches if table is empty.
+    """
+    db = get_db()
+    existing = db.execute("SELECT COUNT(*) FROM item_types").fetchone()[0]
+    if existing > 0:
+        logger.info("Item types already loaded (%d), skipping bootstrap", existing)
+        return 0
+
+    base = settings.WORLD_API_STATIC
+    all_types: list[dict] = []
+    offset = 0
+    page_size = 100
+
+    for _ in range(100):
+        try:
+            r = await client.get(
+                f"{base}/v2/types",
+                params={"limit": page_size, "offset": offset, "format": "json"},
+                timeout=15.0,
+            )
+            r.raise_for_status()
+            data = r.json()
+
+            items = data.get("data", []) if isinstance(data, dict) else data
+            if not items:
+                break
+            all_types.extend(items)
+            offset += len(items)
+
+            if len(items) < page_size:
+                break
+        except Exception as e:
+            logger.error("Types fetch error at offset %d: %s", offset, e)
+            break
+
+    if all_types:
+        for t in all_types:
+            type_id = str(t.get("id", t.get("typeId", "")))
+            if not type_id:
+                continue
+            db.execute(
+                """INSERT OR IGNORE INTO item_types
+                (type_id, name, category, group_name, volume, mass, raw_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    type_id,
+                    t.get("name", ""),
+                    t.get("category", t.get("categoryName", "")),
+                    t.get("group", t.get("groupName", "")),
+                    t.get("volume", 0),
+                    t.get("mass", 0),
+                    json.dumps(t),
+                ),
+            )
+        db.commit()
+        logger.info("Bootstrapped %d item types from World API", len(all_types))
+
+    return len(all_types)
+
+
+async def bootstrap_constellations(client: httpx.AsyncClient) -> int:
+    """Fetch constellation reference data from World API static endpoint.
+
+    Populates constellations table. Only fetches if table is empty.
+    """
+    db = get_db()
+    existing = db.execute("SELECT COUNT(*) FROM constellations").fetchone()[0]
+    if existing > 0:
+        logger.info("Constellations already loaded (%d), skipping bootstrap", existing)
+        return 0
+
+    base = settings.WORLD_API_STATIC
+    all_constellations: list[dict] = []
+    offset = 0
+    page_size = 100
+
+    for _ in range(100):
+        try:
+            r = await client.get(
+                f"{base}/v2/constellations",
+                params={"limit": page_size, "offset": offset, "format": "json"},
+                timeout=15.0,
+            )
+            r.raise_for_status()
+            data = r.json()
+
+            items = data.get("data", []) if isinstance(data, dict) else data
+            if not items:
+                break
+            all_constellations.extend(items)
+            offset += len(items)
+
+            if len(items) < page_size:
+                break
+        except Exception as e:
+            logger.error("Constellations fetch error at offset %d: %s", offset, e)
+            break
+
+    if all_constellations:
+        for c in all_constellations:
+            cid = str(c.get("id", ""))
+            if not cid:
+                continue
+            db.execute(
+                """INSERT OR IGNORE INTO constellations
+                (constellation_id, name, region_id, raw_json)
+                VALUES (?, ?, ?, ?)""",
+                (
+                    cid,
+                    c.get("name", ""),
+                    str(c.get("regionId", "")),
+                    json.dumps(c),
+                ),
+            )
+        db.commit()
+        logger.info("Bootstrapped %d constellations from World API", len(all_constellations))
+
+    return len(all_constellations)
+
+
+async def bootstrap_gate_links(client: httpx.AsyncClient) -> int:
+    """Fetch gate link topology by querying detailed system data from World API.
+
+    Reads system IDs from the solar_systems table, fetches detailed data for each
+    system (in batches of 10 concurrent requests), and extracts gateLinks into the
+    gate_links table. Only runs if gate_links table is empty.
+
+    NOTE: Currently limited to first 500 systems to avoid hammering the API.
+    Expand GATE_LINK_BOOTSTRAP_LIMIT to cover all 24,502 systems once validated.
+    """
+    # How many systems to fetch gate links for (expand as needed)
+    GATE_LINK_BOOTSTRAP_LIMIT = 500
+    BATCH_SIZE = 10
+
+    db = get_db()
+    existing = db.execute("SELECT COUNT(*) FROM gate_links").fetchone()[0]
+    if existing > 0:
+        logger.info("Gate links already loaded (%d), skipping bootstrap", existing)
+        return 0
+
+    # Read system IDs from already-bootstrapped solar_systems table
+    rows = db.execute(
+        "SELECT solar_system_id FROM solar_systems LIMIT ?",
+        (GATE_LINK_BOOTSTRAP_LIMIT,),
+    ).fetchall()
+    system_ids = [row[0] for row in rows]
+
+    if not system_ids:
+        logger.warning("No solar systems in DB — cannot bootstrap gate links")
+        return 0
+
+    base = settings.WORLD_API_STATIC
+    total_links = 0
+
+    async def _fetch_system_detail(sys_id: str) -> list[dict]:
+        """Fetch detailed system data and return extracted gate links."""
+        try:
+            r = await client.get(
+                f"{base}/v2/solarsystems/{sys_id}",
+                timeout=15.0,
+            )
+            r.raise_for_status()
+            data = r.json()
+            gate_links_raw = data.get("gateLinks", [])
+            results = []
+            for gl in gate_links_raw:
+                gate_id = gl.get("id")
+                if not gate_id:
+                    continue
+                loc = gl.get("location", {})
+                dest = gl.get("destination", {})
+
+                # World API coords: no offset subtraction needed, but DO axis swap
+                raw_x = safe_coord(loc.get("x"))
+                raw_y = safe_coord(loc.get("y"))
+                raw_z = safe_coord(loc.get("z"))
+                rx, ry, rz = eve_to_render(raw_x, raw_y, raw_z)
+
+                results.append(
+                    {
+                        "gate_id": str(gate_id),
+                        "gate_name": gl.get("name", ""),
+                        "source_system_id": str(sys_id),
+                        "destination_system_id": str(dest.get("id", "")),
+                        "x": rx,
+                        "y": ry,
+                        "z": rz,
+                        "raw_json": json.dumps(gl),
+                    }
+                )
+            return results
+        except Exception as e:
+            logger.debug("Gate links fetch failed for system %s: %s", sys_id, e)
+            return []
+
+    # Process in batches of BATCH_SIZE concurrent requests
+    for i in range(0, len(system_ids), BATCH_SIZE):
+        batch = system_ids[i : i + BATCH_SIZE]
+        tasks = [_fetch_system_detail(sid) for sid in batch]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.debug("Gate link batch item error: %s", result)
+                continue
+            for link in result:
+                db.execute(
+                    """INSERT OR IGNORE INTO gate_links
+                    (gate_id, gate_name, source_system_id, destination_system_id, x, y, z, raw_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        link["gate_id"],
+                        link["gate_name"],
+                        link["source_system_id"],
+                        link["destination_system_id"],
+                        link["x"],
+                        link["y"],
+                        link["z"],
+                        link["raw_json"],
+                    ),
+                )
+                total_links += 1
+
+    if total_links:
+        db.commit()
+        logger.info("Bootstrapped %d gate links from World API", total_links)
+
+    return total_links
 
 
 def backfill_missing_system_names() -> int:
@@ -214,9 +534,11 @@ def _ingest_killmails(db, killmails: list[dict]) -> int:
                         list({a.get("corporationId") for a in attackers if a.get("corporationId")})
                     ),
                     str(raw.get("solarSystemId", "")),
-                    raw.get("position", {}).get("x"),
-                    raw.get("position", {}).get("y"),
-                    raw.get("position", {}).get("z"),
+                    *eve_to_render(
+                        safe_coord(raw.get("position", {}).get("x")),
+                        safe_coord(raw.get("position", {}).get("y")),
+                        safe_coord(raw.get("position", {}).get("z")),
+                    ),
                     timestamp,
                     json.dumps(raw),
                 ),
@@ -240,13 +562,6 @@ def _ingest_smart_assemblies(db, assemblies: list[dict]) -> int:
         owner = raw.get("owner", {})
         location = solar.get("location", {})
 
-        # EVE coordinates can be huge (>2^63) — store as float
-        def _safe_coord(val):
-            try:
-                return float(val) if val is not None else None
-            except (TypeError, ValueError):
-                return None
-
         try:
             cursor = db.execute(
                 """INSERT OR IGNORE INTO smart_assemblies
@@ -264,9 +579,11 @@ def _ingest_smart_assemblies(db, assemblies: list[dict]) -> int:
                     solar.get("name", ""),
                     str(owner.get("address", "")),
                     owner.get("name", ""),
-                    _safe_coord(location.get("x")),
-                    _safe_coord(location.get("y")),
-                    _safe_coord(location.get("z")),
+                    *eve_to_render(
+                        safe_coord(location.get("x")),
+                        safe_coord(location.get("y")),
+                        safe_coord(location.get("z")),
+                    ),
                     json.dumps(raw),
                 ),
             )
@@ -293,12 +610,6 @@ def _update_assembly_locations(db, locations: list[dict]) -> int:
         ).fetchone()
         system_name = name_row["name"] if name_row else ""
 
-        def _safe_coord(val):
-            try:
-                return float(val) if val else None
-            except (TypeError, ValueError):
-                return None
-
         try:
             cursor = db.execute(
                 """UPDATE smart_assemblies
@@ -308,9 +619,11 @@ def _update_assembly_locations(db, locations: list[dict]) -> int:
                 (
                     solar_system_id,
                     system_name,
-                    _safe_coord(loc.get("x")),
-                    _safe_coord(loc.get("y")),
-                    _safe_coord(loc.get("z")),
+                    *eve_to_render(
+                        safe_coord(loc.get("x")),
+                        safe_coord(loc.get("y")),
+                        safe_coord(loc.get("z")),
+                    ),
                     assembly_id,
                 ),
             )
@@ -1186,6 +1499,30 @@ async def run_poller() -> None:
                 await bootstrap_system_names(client)
             except Exception as e:
                 logger.error("System names bootstrap error (continuing): %s", e)
+
+            # === Bootstrap: ship reference data from World API ===
+            try:
+                await bootstrap_ships(client)
+            except Exception as e:
+                logger.error("Ships bootstrap error (continuing): %s", e)
+
+            # === Bootstrap: item type reference data from World API ===
+            try:
+                await bootstrap_types(client)
+            except Exception as e:
+                logger.error("Types bootstrap error (continuing): %s", e)
+
+            # === Bootstrap: constellation reference data from World API ===
+            try:
+                await bootstrap_constellations(client)
+            except Exception as e:
+                logger.error("Constellations bootstrap error (continuing): %s", e)
+
+            # === Bootstrap: gate link topology from World API ===
+            try:
+                await bootstrap_gate_links(client)
+            except Exception as e:
+                logger.error("Gate links bootstrap error (continuing): %s", e)
 
             # === Backfill: catch orphaned system IDs (seed data, format mismatches) ===
             try:

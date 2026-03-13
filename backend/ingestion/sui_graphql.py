@@ -12,6 +12,7 @@ import httpx
 
 from backend.core.config import settings
 from backend.core.logger import get_logger
+from backend.ingestion.coordinates import subtract_onchain_offset
 
 logger = get_logger("sui_graphql")
 
@@ -358,18 +359,19 @@ def transform_location_reveals(events: list[dict]) -> list[dict]:
 
         assembly_id = json_data.get("assembly_id", "")
         solarsystem = str(json_data.get("solarsystem", ""))
-        x = json_data.get("x", "")
-        y = json_data.get("y", "")
-        z = json_data.get("z", "")
+        # On-chain coords are uint256 with 1 << 255 offset — subtract for rendering
+        raw_x = json_data.get("x", "")
+        raw_y = json_data.get("y", "")
+        raw_z = json_data.get("z", "")
 
         if assembly_id and solarsystem:
             results.append(
                 {
                     "assembly_id": assembly_id,
                     "solar_system_id": solarsystem,
-                    "x": x,
-                    "y": y,
-                    "z": z,
+                    "x": subtract_onchain_offset(raw_x) if raw_x else raw_x,
+                    "y": subtract_onchain_offset(raw_y) if raw_y else raw_y,
+                    "z": subtract_onchain_offset(raw_z) if raw_z else raw_z,
                 }
             )
 

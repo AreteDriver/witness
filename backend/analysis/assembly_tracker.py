@@ -30,6 +30,16 @@ ASSEMBLY_TYPE_NAMES: dict[str, str] = {
 }
 
 
+def _resolve_type_name(db: sqlite3.Connection, type_id: str) -> str:
+    """Resolve assembly type ID to human name. DB lookup with hardcoded fallback."""
+    row = db.execute(
+        "SELECT name FROM item_types WHERE type_id = ?", (type_id,)
+    ).fetchone()
+    if row and row["name"]:
+        return row["name"]
+    return ASSEMBLY_TYPE_NAMES.get(type_id, type_id)
+
+
 def get_watcher_assemblies(db: sqlite3.Connection) -> list[dict]:
     """Get all active Smart Assemblies owned by the Watcher.
 
@@ -62,7 +72,7 @@ def get_watcher_assemblies(db: sqlite3.Connection) -> list[dict]:
         assemblies.append(
             {
                 "assembly_id": row["assembly_id"],
-                "type": ASSEMBLY_TYPE_NAMES.get(row["assembly_type"], row["assembly_type"]),
+                "type": _resolve_type_name(db, row["assembly_type"]),
                 "type_id": row["assembly_type"],
                 "solar_system_id": row["solar_system_id"],
                 "solar_system_name": row["solar_system_name"] or "",
