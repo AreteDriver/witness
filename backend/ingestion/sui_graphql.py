@@ -22,7 +22,7 @@ SUI_GRAPHQL_URL = "https://graphql.testnet.sui.io/graphql"
 STILLNESS_PKG = "0x28b497559d65ab320d9da4613bf2498d5946b2c0ae3597ccfda3072ce127448c"
 
 # WatchTower package ID (our deployed contracts)
-WATCHTOWER_PKG = "0xbc6a9d5e19e1d46a734360ee205c2230693a56dfff782d192638e588fcac0a94"
+WATCHTOWER_PKG = "0x3ca7e3af5bf5b072157d02534f5e4013cf11a12b79385c270d97de480e7b7dca"
 
 # Event type templates
 EVENT_TYPES = {

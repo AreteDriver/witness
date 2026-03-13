@@ -5,9 +5,9 @@ import { api } from '../api';
 import type { AnalyticsData } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 
-const WATCHTOWER_PACKAGE = '0xbc6a9d5e19e1d46a734360ee205c2230693a56dfff782d192638e588fcac0a94';
-const ADMIN_CAP = '0x1077b5ba1b4717307b823cb65d03d3713c4f2d6770441632e248fec4551c4d36';
-const SUBSCRIPTION_REGISTRY = '0x4e83950d3500f6cb26b8fb5e89b97ed57d79380850f20e58f293a4a569c4ecca';
+const WATCHTOWER_PACKAGE = '0x3ca7e3af5bf5b072157d02534f5e4013cf11a12b79385c270d97de480e7b7dca';
+const ADMIN_CAP = '0x5af68eea339255f184218108fa52859a08b572e2f906940bafbed436cbbeaaae';
+const SUBSCRIPTION_REGISTRY = '0x4bb5a6999fadd2039b8cfcb7a1b3de0f07973fe0ec74181b024edaaa6069d160';
 const SUI_CLOCK = '0x6';
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {

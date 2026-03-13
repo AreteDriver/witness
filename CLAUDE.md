@@ -217,12 +217,15 @@ Hybrid SUI + Stripe + LUX payment architecture. Three payment channels funnel in
 - **Sui subscription events**: polled via `poll_subscriptions()` in poller
 
 ### Sui Contract Objects (Testnet)
-- Package: `0xbc6a9d5e19e1d46a734360ee205c2230693a56dfff782d192638e588fcac0a94`
-- AdminCap (subscription): `0x1077b5ba1b4717307b823cb65d03d3713c4f2d6770441632e248fec4551c4d36`
-- SubscriptionRegistry: `0x4e83950d3500f6cb26b8fb5e89b97ed57d79380850f20e58f293a4a569c4ecca`
-- ReputationRegistry: `0x82c39f363021cff145b6e82dc5aeae169bff5152307d8a5359821639f0518016`
-- TitleRegistry: `0xd05d0a5832e33e774600e7a9eefe7b6be926320f86549c961d43aaa0b95b969a`
-- UpgradeCap: `0xf3e3499d78f79bfc53e6a0c931f1159b75af38dc50ec12a4ba0cb28db407ff23`
+- Package: `0x3ca7e3af5bf5b072157d02534f5e4013cf11a12b79385c270d97de480e7b7dca`
+- SubscriptionConfig (shared): `0x7bd0e266d3c26665b13c432f70d9b7e5ecc266de993094f8ac8290020283be9d`
+- AdminCap (subscription): `0x5af68eea339255f184218108fa52859a08b572e2f906940bafbed436cbbeaaae`
+- SubscriptionRegistry: `0x4bb5a6999fadd2039b8cfcb7a1b3de0f07973fe0ec74181b024edaaa6069d160`
+- ReputationRegistry: `0xf0cd2f096992dcc5ad532bc79e84332b5a3efe77cb6d46dffc6a9ccbac406e5c`
+- TitleRegistry: `0x66ec6ab2e06c9f84854e643d7142efccada8124465b3b56a959414783cb80219`
+- UpgradeCap: `0x5cce0badb147cba27b633f72f781a978637bb00ae35ddbd188e4ee8b90fc8ab7`
+- TitleOracleCap: `0xaa18e829073dca0154b2b5672faed36043e4168f1b6f8f6a93ebb8810d1133f8`
+- OracleCap (reputation): `0x9f6dfabb32c37b9ce5caf85600613b6cfb17e01b65216d890f4bfe8b5eefbdc7`
 
 ---
 
