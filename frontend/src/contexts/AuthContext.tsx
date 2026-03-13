@@ -58,8 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           sessionVerified.current = true;
         })
         .catch(() => {
-          // Session expired — clear it, dApp kit auto-connect will re-auth
-          localStorage.removeItem(SESSION_KEY);
+          // Session expired — mark unverified but DON'T clear from localStorage yet.
+          // dApp kit auto-connect useEffect reads localStorage synchronously;
+          // clearing here causes a race where it sees no session and re-triggers signing.
           sessionVerified.current = false;
         });
     }
@@ -91,8 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // No saved session for this wallet — full challenge-response auth
-    if (!savedSession) {
+    // New wallet (not previously connected) — full challenge-response auth.
+    // If savedWallet matches but session expired, stay read-only rather than
+    // forcing a signature popup on every page refresh.
+    if (!savedSession && savedWallet !== suiAddress) {
       authenticateWallet(suiAddress);
     }
   }, [currentAccount?.address]);
