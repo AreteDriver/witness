@@ -210,13 +210,13 @@ export function AegisEcosystem() {
           <div className="flex items-center gap-2">
             <span className="text-[var(--eve-dim)] text-xs">ACCESS</span>
             <a
-              href="https://github.com/AreteDriver/monolith"
+              href="https://monolith-evefrontier.fly.dev"
               target="_blank"
               rel="noopener noreferrer"
               className="aegis-mono text-xs hover:underline"
               style={{ color: '#7F77DD' }}
             >
-              github.com/AreteDriver/monolith &rarr;
+              monolith-evefrontier.fly.dev &rarr;
             </a>
           </div>
         </div>
