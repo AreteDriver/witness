@@ -1,0 +1,26 @@
+{
+  "name": "@watchtower/api-client",
+  "version": "0.1.0",
+  "description": "WatchTower API types and client — shared across web and mobile",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "files": ["dist"],
+  "devDependencies": {
+    "typescript": "^5.8.0"
+  }
+}
