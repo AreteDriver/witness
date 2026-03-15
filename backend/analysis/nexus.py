@@ -108,6 +108,8 @@ def check_delivery_quota(db, subscription_id: int) -> bool:
 
     Returns True if delivery is allowed.
     """
+    from backend.api.tier_gate import is_admin_wallet
+
     sub = db.execute(
         "SELECT wallet_address FROM nexus_subscriptions WHERE id = ?",
         (subscription_id,),
@@ -117,6 +119,11 @@ def check_delivery_quota(db, subscription_id: int) -> bool:
 
     # Get wallet's tier
     wallet = sub["wallet_address"]
+
+    # Admin wallets bypass quota checks
+    if is_admin_wallet(wallet):
+        return True
+
     tier_row = db.execute(
         "SELECT tier, expires_at FROM watcher_subscriptions WHERE wallet_address = ?",
         (wallet,),

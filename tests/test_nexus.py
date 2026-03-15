@@ -9,6 +9,7 @@ import pytest
 from backend.analysis.nexus import (
     TIER_LIMITS,
     _is_hackathon_active,
+    check_delivery_quota,
     check_subscription_quota,
     generate_api_key,
     generate_secret,
@@ -270,3 +271,51 @@ def test_hackathon_expired_reverts_to_real_tier(mock_settings, nexus_db):
     usage = get_quota_usage(nexus_db, "0xhacker")
     assert usage["tier"] == 0
     assert usage["subscriptions_max"] == 0
+
+
+# -- Admin bypass --
+
+
+@patch("backend.api.tier_gate.is_admin_wallet", return_value=True)
+@patch("backend.analysis.nexus.settings")
+def test_admin_wallet_bypasses_delivery_quota(mock_settings, mock_admin, nexus_db):
+    """Admin wallet bypasses delivery quota even without hackathon mode."""
+    mock_settings.HACKATHON_MODE = False
+    mock_settings.HACKATHON_ENDS = "2020-01-01"
+
+    # Create sub owned by admin wallet
+    nexus_db.execute(
+        "INSERT INTO nexus_subscriptions (api_key, name, endpoint_url, secret, wallet_address) "
+        "VALUES (?, ?, ?, ?, ?)",
+        ("nxs_test", "admin-sub", "https://example.com/hook", "secret123", "admin"),
+    )
+    nexus_db.commit()
+    row = nexus_db.execute(
+        "SELECT id FROM nexus_subscriptions WHERE api_key = 'nxs_test'"
+    ).fetchone()
+    sub_id = row["id"]
+
+    # No watcher_subscriptions row, no hackathon — would normally be blocked
+    assert check_delivery_quota(nexus_db, sub_id) is True
+
+
+@patch("backend.analysis.nexus.settings")
+def test_non_admin_blocked_without_tier(mock_settings, nexus_db):
+    """Non-admin wallet with no tier is blocked when hackathon is off."""
+    mock_settings.HACKATHON_MODE = False
+    mock_settings.HACKATHON_ENDS = "2020-01-01"
+    mock_settings.ADMIN_ADDRESSES = ""
+    mock_settings.admin_address_set = set()
+
+    nexus_db.execute(
+        "INSERT INTO nexus_subscriptions (api_key, name, endpoint_url, secret, wallet_address) "
+        "VALUES (?, ?, ?, ?, ?)",
+        ("nxs_blocked", "blocked-sub", "https://example.com/hook", "secret456", "0xrandom"),
+    )
+    nexus_db.commit()
+    row = nexus_db.execute(
+        "SELECT id FROM nexus_subscriptions WHERE api_key = 'nxs_blocked'"
+    ).fetchone()
+    sub_id = row["id"]
+
+    assert check_delivery_quota(nexus_db, sub_id) is False
