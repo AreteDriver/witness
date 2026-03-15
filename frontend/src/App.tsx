@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useNavigate, useLocation, Routes, Route } from 'react-router';
 import { useEventStream } from './hooks/useEventStream';
 import { api } from './api';
@@ -8,7 +8,6 @@ import { FingerprintCard } from './components/FingerprintCard';
 import { ActivityHeatmap } from './components/ActivityHeatmap';
 import { EntityTimeline } from './components/EntityTimeline';
 import { NarrativePanel } from './components/NarrativePanel';
-import { CompareView } from './components/CompareView';
 import { StoryFeed } from './components/StoryFeed';
 import { Leaderboard } from './components/Leaderboard';
 import { HealthBanner } from './components/HealthBanner';
@@ -19,23 +18,35 @@ import { CorpIntel } from './components/CorpIntel';
 import { ReputationBadge } from './components/ReputationBadge';
 import { AssemblyMap } from './components/AssemblyMap';
 import { WalletConnect } from './components/WalletConnect';
-import { AccountPage } from './components/AccountPage';
-import { EntityPage } from './components/EntityPage';
-import { CorpPage } from './components/CorpPage';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { TierGate } from './components/TierGate';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { CycleBanner } from './components/CycleBanner';
-import { OrbitalZones } from './components/OrbitalZones';
-import { VoidScanFeed } from './components/VoidScanFeed';
-import { CloneStatus } from './components/CloneStatus';
-import { CrownRoster } from './components/CrownRoster';
-import { AdminAnalytics } from './components/AdminAnalytics';
-import { SystemDossier } from './components/SystemDossier';
-import { TitleCard } from './components/TitleCard';
-import { AegisEcosystem } from './components/AegisEcosystem';
 import { NexusCard } from './components/NexusCard';
+import { AegisEcosystem } from './components/AegisEcosystem';
 import { useAuth } from './contexts/AuthContext';
+
+// Lazy-loaded: route-level pages + heavy tab content
+const AccountPage = lazy(() => import('./components/AccountPage').then(m => ({ default: m.AccountPage })));
+const EntityPage = lazy(() => import('./components/EntityPage').then(m => ({ default: m.EntityPage })));
+const CorpPage = lazy(() => import('./components/CorpPage').then(m => ({ default: m.CorpPage })));
+const SystemDossier = lazy(() => import('./components/SystemDossier').then(m => ({ default: m.SystemDossier })));
+const TitleCard = lazy(() => import('./components/TitleCard').then(m => ({ default: m.TitleCard })));
+const CompareView = lazy(() => import('./components/CompareView').then(m => ({ default: m.CompareView })));
+const AdminAnalytics = lazy(() => import('./components/AdminAnalytics').then(m => ({ default: m.AdminAnalytics })));
+const OrbitalZones = lazy(() => import('./components/OrbitalZones').then(m => ({ default: m.OrbitalZones })));
+const VoidScanFeed = lazy(() => import('./components/VoidScanFeed').then(m => ({ default: m.VoidScanFeed })));
+const CloneStatus = lazy(() => import('./components/CloneStatus').then(m => ({ default: m.CloneStatus })));
+const CrownRoster = lazy(() => import('./components/CrownRoster').then(m => ({ default: m.CrownRoster })));
+
+function LazyFallback() {
+  return (
+    <div className="flex items-center gap-2 text-[var(--eve-dim)] py-4">
+      <span className="pulse-green text-[var(--eve-green)]">///</span>
+      Loading...
+    </div>
+  );
+}
 
 type Tab = 'intel' | 'tactical' | 'c5' | 'compare' | 'feed' | 'account' | 'admin';
 
@@ -174,6 +185,7 @@ function Dashboard() {
       )}
 
       {/* Tab Content */}
+      <Suspense fallback={<LazyFallback />}>
       {activeTab === 'intel' && (
         <div className="space-y-6">
           {fingerprint && !loading && (
@@ -328,6 +340,7 @@ function Dashboard() {
           <AdminAnalytics />
         </ErrorBoundary>
       )}
+      </Suspense>
     </>
   );
 }
@@ -363,6 +376,7 @@ export default function App() {
 
       {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+        <Suspense fallback={<LazyFallback />}>
         <Routes>
           <Route path="/entity/:entityId" element={
             <ErrorBoundary>
@@ -386,6 +400,7 @@ export default function App() {
           } />
           <Route path="*" element={<Dashboard />} />
         </Routes>
+        </Suspense>
       </main>
 
       {/* Aegis Ecosystem */}
