@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router";
 import { SearchBar } from "../components/SearchBar";
 
 // Mock the api module
@@ -13,30 +14,44 @@ vi.mock("../api", () => ({
 import { api } from "../api";
 const mockSearch = vi.mocked(api.search);
 
+function renderSearchBar(onSelect = vi.fn()) {
+  return render(
+    <MemoryRouter>
+      <SearchBar onSelect={onSelect} />
+    </MemoryRouter>
+  );
+}
+
 beforeEach(() => {
   mockSearch.mockReset();
 });
 
 describe("SearchBar", () => {
   it("renders the search input", () => {
-    render(<SearchBar onSelect={vi.fn()} />);
+    renderSearchBar();
     expect(
-      screen.getByPlaceholderText("Search entities...")
+      screen.getByPlaceholderText("Search entities or systems...")
     ).toBeInTheDocument();
+  });
+
+  it("has correct placeholder text", () => {
+    renderSearchBar();
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveAttribute("placeholder", "Search entities or systems...");
   });
 
   it("does not search for queries shorter than 2 characters", async () => {
     const user = userEvent.setup();
-    render(<SearchBar onSelect={vi.fn()} />);
-    await user.type(screen.getByPlaceholderText("Search entities..."), "a");
+    renderSearchBar();
+    await user.type(screen.getByPlaceholderText("Search entities or systems..."), "a");
     expect(mockSearch).not.toHaveBeenCalled();
   });
 
   it("calls api.search when typing 2+ characters", async () => {
     mockSearch.mockResolvedValue({ results: [] });
     const user = userEvent.setup();
-    render(<SearchBar onSelect={vi.fn()} />);
-    await user.type(screen.getByPlaceholderText("Search entities..."), "te");
+    renderSearchBar();
+    await user.type(screen.getByPlaceholderText("Search entities or systems..."), "te");
     await waitFor(() => {
       expect(mockSearch).toHaveBeenCalled();
     });
@@ -54,8 +69,8 @@ describe("SearchBar", () => {
       ],
     });
     const user = userEvent.setup();
-    render(<SearchBar onSelect={vi.fn()} />);
-    await user.type(screen.getByPlaceholderText("Search entities..."), "Test");
+    renderSearchBar();
+    await user.type(screen.getByPlaceholderText("Search entities or systems..."), "Test");
     await waitFor(() => {
       expect(screen.getByText("TestPilot")).toBeInTheDocument();
     });
@@ -76,8 +91,8 @@ describe("SearchBar", () => {
     });
     const onSelect = vi.fn();
     const user = userEvent.setup();
-    render(<SearchBar onSelect={onSelect} />);
-    await user.type(screen.getByPlaceholderText("Search entities..."), "Test");
+    renderSearchBar(onSelect);
+    await user.type(screen.getByPlaceholderText("Search entities or systems..."), "Test");
     await waitFor(() => {
       expect(screen.getByText("TestPilot")).toBeInTheDocument();
     });

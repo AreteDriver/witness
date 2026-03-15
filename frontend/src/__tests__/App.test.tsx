@@ -1,9 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import App from "../App";
 import { AuthProvider } from "../contexts/AuthContext";
+
+// Mock @mysten/dapp-kit — AuthProvider uses its hooks
+vi.mock("@mysten/dapp-kit", () => ({
+  useCurrentAccount: () => null,
+  useDisconnectWallet: () => ({ mutate: vi.fn() }),
+  useSignPersonalMessage: () => ({ mutateAsync: vi.fn() }),
+}));
 
 // Mock the event stream hook with capturable handlers
 let mockEventHandlers: Record<string, (e: { data: Record<string, unknown> }) => void> = {};
@@ -14,6 +21,23 @@ vi.mock("../hooks/useEventStream", () => ({
     return { connected: mockConnected, lastEvent: null };
   },
 }));
+
+// Mock the api module
+vi.mock("../api", () => ({
+  api: {
+    fingerprint: vi.fn(),
+    entity: vi.fn(),
+    search: vi.fn(),
+    subscription: vi.fn(),
+    walletMe: vi.fn(),
+    walletChallenge: vi.fn(),
+    walletConnect: vi.fn(),
+    walletDisconnect: vi.fn(),
+  },
+}));
+
+import { api } from "../api";
+const mockApi = vi.mocked(api);
 
 // Mock all child components that make API calls
 vi.mock("../components/HealthBanner", () => ({
@@ -78,11 +102,47 @@ vi.mock("../components/AccountPage", () => ({
 vi.mock("../components/EntityPage", () => ({
   EntityPage: () => <div data-testid="entity-page">EntityPage</div>,
 }));
+vi.mock("../components/CorpPage", () => ({
+  CorpPage: () => <div data-testid="corp-page">CorpPage</div>,
+}));
 vi.mock("../components/TierGate", () => ({
   TierGate: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 vi.mock("../components/ErrorBoundary", () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+vi.mock("../components/CycleBanner", () => ({
+  CycleBanner: () => <div data-testid="cycle-banner">CycleBanner</div>,
+}));
+vi.mock("../components/OrbitalZones", () => ({
+  OrbitalZones: () => <div data-testid="orbital-zones">OrbitalZones</div>,
+}));
+vi.mock("../components/VoidScanFeed", () => ({
+  VoidScanFeed: () => <div>VoidScanFeed</div>,
+}));
+vi.mock("../components/CloneStatus", () => ({
+  CloneStatus: () => <div>CloneStatus</div>,
+}));
+vi.mock("../components/CrownRoster", () => ({
+  CrownRoster: () => <div>CrownRoster</div>,
+}));
+vi.mock("../components/AdminAnalytics", () => ({
+  AdminAnalytics: () => <div>AdminAnalytics</div>,
+}));
+vi.mock("../components/SystemDossier", () => ({
+  SystemDossier: () => <div>SystemDossier</div>,
+}));
+vi.mock("../components/TitleCard", () => ({
+  TitleCard: () => <div>TitleCard</div>,
+}));
+vi.mock("../components/AegisEcosystem", () => ({
+  AegisEcosystem: () => <div data-testid="aegis-ecosystem">AegisEcosystem</div>,
+}));
+vi.mock("../components/NexusCard", () => ({
+  NexusCard: () => <div>NexusCard</div>,
+}));
+vi.mock("../components/CollapsibleSection", () => ({
+  CollapsibleSection: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 function renderApp(initialRoute = "/") {
@@ -96,10 +156,22 @@ function renderApp(initialRoute = "/") {
 }
 
 beforeEach(() => {
-  vi.restoreAllMocks();
+  // Only clear api mock call history — don't use clearAllMocks/restoreAllMocks
+  // as they destroy vi.mock() factory implementations for component mocks
+  mockApi.fingerprint.mockClear();
+  mockApi.entity.mockClear();
+  mockApi.search.mockClear();
+  mockApi.subscription.mockResolvedValue(null);
+  mockApi.walletMe.mockRejectedValue(new Error("no session"));
+  mockApi.walletDisconnect.mockResolvedValue(undefined as never);
 });
 
 describe("App", () => {
+  it("renders without crashing", () => {
+    renderApp();
+    expect(document.querySelector(".min-h-screen")).toBeTruthy();
+  });
+
   it("renders WATCHTOWER header", () => {
     renderApp();
     expect(screen.getByText("WATCHTOWER")).toBeInTheDocument();
@@ -110,10 +182,11 @@ describe("App", () => {
     expect(screen.getByText("The Living Memory")).toBeInTheDocument();
   });
 
-  it("renders all five tab buttons", () => {
+  it("renders all six tab buttons", () => {
     renderApp();
     expect(screen.getByText("Intelligence")).toBeInTheDocument();
     expect(screen.getByText("Tactical")).toBeInTheDocument();
+    expect(screen.getByText("Shroud")).toBeInTheDocument();
     expect(screen.getByText("Compare")).toBeInTheDocument();
     expect(screen.getByText("Feed & Rankings")).toBeInTheDocument();
     expect(screen.getByText("Connect")).toBeInTheDocument();
@@ -140,7 +213,7 @@ describe("App", () => {
   it("shows empty state message when no entity selected", () => {
     renderApp();
     expect(
-      screen.getByText(/Search for an entity to view their behavioral fingerprint/)
+      screen.getByText(/Search for an entity/)
     ).toBeInTheDocument();
   });
 
@@ -148,26 +221,42 @@ describe("App", () => {
     const user = userEvent.setup();
     renderApp();
     await user.click(screen.getByText("Compare"));
-    expect(screen.getByTestId("compare-view")).toBeInTheDocument();
+    // CompareView is lazy-loaded — wait for Suspense to resolve
+    await waitFor(() => {
+      expect(screen.getByTestId("compare-view")).toBeInTheDocument();
+    });
   });
 
-  it("switches to Account tab on click", async () => {
+  it("switches to Connect/Account tab on click", async () => {
     const user = userEvent.setup();
     renderApp();
     await user.click(screen.getByText("Connect"));
-    expect(screen.getByTestId("account-page")).toBeInTheDocument();
+    // AccountPage is lazy-loaded
+    await waitFor(() => {
+      expect(screen.getByTestId("account-page")).toBeInTheDocument();
+    });
   });
 
-  it("renders entity page at /entity/:id route", () => {
+  it("renders entity page at /entity/:id route", async () => {
     renderApp("/entity/char-001");
-    expect(screen.getByTestId("entity-page")).toBeInTheDocument();
+    // EntityPage is lazy-loaded
+    await waitFor(() => {
+      expect(screen.getByTestId("entity-page")).toBeInTheDocument();
+    });
+  });
+
+  it("renders corp page at /corp/:id route", async () => {
+    renderApp("/corp/corp-001");
+    // CorpPage is lazy-loaded
+    await waitFor(() => {
+      expect(screen.getByTestId("corp-page")).toBeInTheDocument();
+    });
   });
 
   it("shows live ticker when events arrive via SSE", async () => {
     mockConnected = true;
     renderApp();
 
-    // Simulate a kill event arriving via the captured handlers
     const { act } = await import("@testing-library/react");
     act(() => {
       mockEventHandlers.kill?.({ data: { new_count: 3 } });
