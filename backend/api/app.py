@@ -15,6 +15,8 @@ from backend.analysis.oracle import check_c5_alerts, check_watches
 from backend.analysis.story_feed import generate_feed_items
 from backend.api.admin_pricing import router as admin_pricing_router
 from backend.api.auth import router as auth_router
+from backend.api.error_tracker import capture_error
+from backend.api.error_tracker import router as error_tracker_router
 from backend.api.cycle5 import router as cycle5_router
 from backend.api.events import router as events_router
 from backend.api.pricing import router as pricing_router
@@ -127,6 +129,17 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Capture unhandled exceptions into the error ring buffer, then re-raise."""
+    capture_error(request, exc)
+    # Return a generic 500 — FastAPI's default behavior
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error."},
+    )
+
+
 @app.middleware("http")
 async def security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -145,6 +158,7 @@ app.include_router(stripe_router, prefix="/api")
 app.include_router(pricing_router, prefix="/api")
 app.include_router(admin_pricing_router, prefix="/api")
 app.include_router(reference_router, prefix="/api")
+app.include_router(error_tracker_router, prefix="/api")
 
 # Serve frontend static files if built
 FRONTEND_DIR = (Path(__file__).parent.parent.parent / "frontend" / "dist").resolve()

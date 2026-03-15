@@ -103,7 +103,8 @@ async def health():
 
 
 @router.get("/entity/{entity_id}")
-async def get_entity(entity_id: str):
+@limiter.limit("120/minute")
+async def get_entity(request: Request, entity_id: str):
     db = get_db()
     dossier = resolve_entity(db, entity_id)
     if not dossier:
@@ -127,7 +128,9 @@ _ENTITY_LIST_SQL = {
 
 
 @router.get("/entities")
+@limiter.limit("100/minute")
 async def list_entities(
+    request: Request,
     entity_type: str | None = None,
     sort: str = "event_count",
     limit: int = Query(default=50, le=200),
@@ -153,7 +156,9 @@ async def list_entities(
 
 
 @router.get("/entity/{entity_id}/timeline")
+@limiter.limit("120/minute")
 async def get_entity_timeline(
+    request: Request,
     entity_id: str,
     start: int | None = None,
     end: int | None = None,
@@ -202,7 +207,9 @@ async def get_entity_timeline(
 
 
 @router.get("/feed")
+@limiter.limit("100/minute")
 async def get_story_feed(
+    request: Request,
     limit: int = Query(default=20, le=100),
     before: int | None = None,
 ):
@@ -229,7 +236,9 @@ async def get_story_feed(
 
 
 @router.get("/leaderboard/{category}")
+@limiter.limit("100/minute")
 async def get_leaderboard(
+    request: Request,
     category: str,
     limit: int = Query(default=20, le=50),
 ):
@@ -277,7 +286,8 @@ async def get_leaderboard(
 
 
 @router.get("/titles")
-async def get_titled_entities(limit: int = Query(default=50, le=200)):
+@limiter.limit("100/minute")
+async def get_titled_entities(request: Request, limit: int = Query(default=50, le=200)):
     db = get_db()
     rows = db.execute(
         """SELECT t.entity_id, t.title, t.title_type, t.inscription_count,
@@ -292,7 +302,9 @@ async def get_titled_entities(limit: int = Query(default=50, le=200)):
 
 
 @router.get("/search")
+@limiter.limit("60/minute")
 async def search_entities(
+    request: Request,
     q: str = Query(min_length=2, max_length=100),
     limit: int = Query(default=20, le=50),
 ):
@@ -402,7 +414,9 @@ async def get_kill_graph(
 
 
 @router.get("/hotzones")
+@limiter.limit("100/minute")
 async def get_hotzones_endpoint(
+    request: Request,
     window: str = Query(default="all", pattern="^(24h|7d|30d|all)$"),
     limit: int = Query(default=20, le=50),
 ):
@@ -412,21 +426,24 @@ async def get_hotzones_endpoint(
 
 
 @router.get("/hotzones/{solar_system_id}")
-async def get_system_detail(solar_system_id: str):
+@limiter.limit("100/minute")
+async def get_system_detail(request: Request, solar_system_id: str):
     """Detailed kill activity for a specific system."""
     db = get_db()
     return get_system_activity(db, solar_system_id)
 
 
 @router.get("/system/{solar_system_id}")
-async def get_system_dossier_endpoint(solar_system_id: str):
+@limiter.limit("120/minute")
+async def get_system_dossier_endpoint(request: Request, solar_system_id: str):
     """Full intelligence dossier for a solar system."""
     db = get_db()
     return get_system_dossier(db, solar_system_id)
 
 
 @router.get("/entity/{entity_id}/streak")
-async def get_entity_streak(entity_id: str):
+@limiter.limit("120/minute")
+async def get_entity_streak(request: Request, entity_id: str):
     """Kill streak and momentum data for an entity."""
     db = get_db()
     info = compute_streaks(db, entity_id)
@@ -434,28 +451,32 @@ async def get_entity_streak(entity_id: str):
 
 
 @router.get("/streaks")
-async def get_streaks(limit: int = Query(default=10, le=50)):
+@limiter.limit("100/minute")
+async def get_streaks(request: Request, limit: int = Query(default=10, le=50)):
     """Entities currently on kill streaks."""
     db = get_db()
     return {"streaks": get_hot_streaks(db, limit=limit)}
 
 
 @router.get("/corps")
-async def get_corps(limit: int = Query(default=20, le=50)):
+@limiter.limit("100/minute")
+async def get_corps(request: Request, limit: int = Query(default=20, le=50)):
     """Corporation leaderboard by combat activity."""
     db = get_db()
     return {"corps": get_corp_leaderboard(db, limit=limit)}
 
 
 @router.get("/corps/rivalries")
-async def get_rivalries(limit: int = Query(default=10, le=50)):
+@limiter.limit("100/minute")
+async def get_rivalries(request: Request, limit: int = Query(default=10, le=50)):
     """Inter-corporation rivalries (mutual kills)."""
     db = get_db()
     return {"rivalries": detect_corp_rivalries(db, limit=limit)}
 
 
 @router.get("/corp/{corp_id}")
-async def get_corp(corp_id: str):
+@limiter.limit("120/minute")
+async def get_corp(request: Request, corp_id: str):
     """Detailed corporation profile."""
     db = get_db()
     profile = get_corp_profile(db, corp_id)
@@ -475,21 +496,24 @@ async def get_entity_reputation(request: Request, entity_id: str):
 
 
 @router.get("/assemblies")
-async def get_assemblies():
+@limiter.limit("100/minute")
+async def get_assemblies(request: Request):
     """Live Watcher Smart Assembly locations — auto-updated from chain."""
     db = get_db()
     return get_assembly_stats(db)
 
 
 @router.get("/assemblies/list")
-async def list_assemblies():
+@limiter.limit("100/minute")
+async def list_assemblies(request: Request):
     """All Watcher assembly locations."""
     db = get_db()
     return {"assemblies": get_watcher_assemblies(db)}
 
 
 @router.get("/subscription/{wallet_address}")
-async def get_subscription(wallet_address: str):
+@limiter.limit("120/minute")
+async def get_subscription(request: Request, wallet_address: str):
     """Check subscription status for a wallet address."""
     if settings.HACKATHON_MODE:
         from datetime import UTC, date, datetime
@@ -786,7 +810,8 @@ class WatchRequest(BaseModel):
 
 
 @router.get("/watches")
-async def list_watches(user_id: str = Query(..., min_length=1)):
+@limiter.limit("60/minute")
+async def list_watches(request: Request, user_id: str = Query(..., min_length=1)):
     """List active watches for a user/wallet."""
     db = get_db()
     rows = db.execute(
@@ -826,7 +851,8 @@ async def create_watch(request: Request, req: WatchRequest):
 
 
 @router.delete("/watches/{target_id}")
-async def delete_watch(target_id: str, user_id: str):
+@limiter.limit("60/minute")
+async def delete_watch(request: Request, target_id: str, user_id: str):
     db = get_db()
     db.execute(
         "UPDATE watches SET active = 0 WHERE user_id = ? AND target_id = ? AND active = 1",
@@ -837,7 +863,8 @@ async def delete_watch(target_id: str, user_id: str):
 
 
 @router.get("/alerts")
-async def list_alerts(user_id: str = Query(..., min_length=1), limit: int = 50):
+@limiter.limit("60/minute")
+async def list_alerts(request: Request, user_id: str = Query(..., min_length=1), limit: int = 50):
     """List recent watch alerts for a user."""
     db = get_db()
     rows = db.execute(
@@ -850,7 +877,8 @@ async def list_alerts(user_id: str = Query(..., min_length=1), limit: int = 50):
 
 
 @router.post("/alerts/{alert_id}/read")
-async def mark_alert_read(alert_id: int):
+@limiter.limit("60/minute")
+async def mark_alert_read(request: Request, alert_id: int):
     """Mark an alert as read."""
     db = get_db()
     db.execute("UPDATE watch_alerts SET read = 1 WHERE id = ?", (alert_id,))
@@ -941,6 +969,7 @@ async def nexus_subscribe(request: Request, req: NexusSubscribeRequest):
 
 
 @router.get("/nexus/quota")
+@limiter.limit("60/minute")
 async def nexus_quota(request: Request):
     """Get NEXUS quota usage for the connected wallet."""
     wallet = request.headers.get("X-Wallet-Address", "")
@@ -951,7 +980,9 @@ async def nexus_quota(request: Request):
 
 
 @router.get("/nexus/subscriptions")
+@limiter.limit("60/minute")
 async def nexus_list_subscriptions(
+    request: Request,
     api_key: str = Query(..., min_length=1),
 ):
     """List subscriptions for an API key."""
@@ -1007,7 +1038,9 @@ async def nexus_update_subscription(
 
 
 @router.delete("/nexus/subscriptions/{sub_id}")
+@limiter.limit("60/minute")
 async def nexus_delete_subscription(
+    request: Request,
     sub_id: int,
     api_key: str = Query(..., min_length=1),
 ):
@@ -1024,7 +1057,9 @@ async def nexus_delete_subscription(
 
 
 @router.get("/nexus/deliveries")
+@limiter.limit("60/minute")
 async def nexus_list_deliveries(
+    request: Request,
     api_key: str = Query(..., min_length=1),
     limit: int = Query(default=50, le=200),
 ):
